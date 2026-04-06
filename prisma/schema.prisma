@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  slug      String    @unique
+  icon      String?
+  image     String?
+  sortOrder Int       @default(0)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id            String   @id @default(uuid())
+  name          String
+  category      Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId    String
+  badge         String   @default("Top Pick")
+  shortBenefit  String?  @db.Text
+  keyBenefits   String?  @db.Text
+  rating        String   @default("4.8/5 Recommended")
+  price         Float
+  image         String?
+  affiliateLink String?
+  isFeatured    Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  reviews       Review[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  reviewer  String
+  rating    Int      @default(5)
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model Testimonial {
+  id       String @id @default(uuid())
+  name     String
+  location String
+  quote    String
+  text     String @db.Text
+  region   String
+  createdAt DateTime @default(now())
+}
