@@ -3,7 +3,11 @@ import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 import apiRouter from './routes/api.js';
+import uploadRouter from './routes/upload.js';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,7 +19,12 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(express.json());
 
+// API Routes
 app.use('/api', apiRouter);
+app.use('/api/upload', uploadRouter);
+
+// Static folders
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'MRT International Server is healthy' });

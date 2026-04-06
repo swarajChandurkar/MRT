@@ -9,6 +9,7 @@ export default defineConfig({
         about: resolve(__dirname, "about.html"),
         categories: resolve(__dirname, "categories.html"),
         category: resolve(__dirname, "category.html"),
+        admin: resolve(__dirname, "admin.html"),
       },
     },
   },
@@ -16,6 +17,11 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       "/api": {
+        target: "http://localhost:3001",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/uploads": {
         target: "http://localhost:3001",
         changeOrigin: true,
         secure: false,

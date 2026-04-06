@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -25,8 +25,8 @@ model Product {
   category      Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   categoryId    String
   badge         String   @default("Top Pick")
-  shortBenefit  String?  @db.Text
-  keyBenefits   String?  @db.Text
+  shortBenefit  String?
+  keyBenefits   String?
   rating        String   @default("4.8/5 Recommended")
   price         Float
   image         String?
@@ -44,7 +44,7 @@ model Review {
   productId String
   reviewer  String
   rating    Int      @default(5)
-  text      String   @db.Text
+  text      String
   createdAt DateTime @default(now())
 }
 
@@ -53,7 +53,7 @@ model Testimonial {
   name     String
   location String
   quote    String
-  text     String @db.Text
+  text     String
   region   String
   createdAt DateTime @default(now())
 }

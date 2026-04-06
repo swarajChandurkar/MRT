@@ -28,7 +28,7 @@ export class ShoppingCart {
     document.addEventListener("click", (e) => {
       const addBtn = e.target.closest("[data-add-to-cart]");
       if (addBtn) {
-        const product = JSON.parse(addBtn.dataset.product);
+        const product = JSON.parse(addBtn.dataset.addToCart);
         this.addItem(product);
         this.toggle(true);
       }

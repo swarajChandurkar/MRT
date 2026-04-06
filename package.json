@@ -9,7 +9,11 @@
     "server": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "git pull origin main && npm install && npm run build && pm2 restart ecosystem.config.js"
+    "deploy": "git pull origin main && npm install && npm run build && pm2 restart ecosystem.config.js",
+    "prisma:generate": "npx prisma generate",
+    "prisma:push": "npx prisma db push",
+    "seed": "node server/seed.js",
+    "format": "prettier --write \"src/**/*.{js,css}\" \"*.{js,json,html,prisma}\""
   },
   "devDependencies": {
     "autoprefixer": "^10.4.27",
