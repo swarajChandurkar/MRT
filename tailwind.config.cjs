@@ -4,8 +4,6 @@ module.exports = {
     './index.html',
     './about.html',
     './categories.html',
-    './category.html',
-    './admin.html',
     './src/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {

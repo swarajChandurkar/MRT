@@ -18,15 +18,11 @@
 
   body {
     @apply bg-[#fff8f4] text-[#201a17] antialiased selection:bg-orange-200;
-    font-family: "Manrope", sans-serif;
+    font-family: 'Manrope', sans-serif;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  .serif {
-    font-family: "Noto Serif", serif;
+  h1, h2, h3, h4, .serif {
+    font-family: 'Noto Serif', serif;
   }
 }
 
@@ -76,27 +72,82 @@
   }
 
   /* Hide Scrollbar Utility */
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* UI/UX Pro Max: Product Cards */
+  .product-card-premium {
+    @apply relative w-full bg-white/60 backdrop-blur-[40px] border border-white/70 rounded-[2.5rem] p-6 transition-all duration-700 hover:shadow-[0_65px_120px_-25px_rgba(0,0,0,0.18)] hover:-translate-y-4 flex flex-col h-full overflow-hidden;
+    transform: perspective(1000px) rotateX(0deg);
+    box-shadow: 0 35px 80px -22px rgba(0,0,0,0.08);
   }
-  .hide-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+
+  .product-card-premium::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/30 opacity-0 transition-opacity duration-700 pointer-events-none;
+  }
+
+  .product-card-premium:hover::before {
+    @apply opacity-100;
+  }
+
+  .product-card-premium:hover {
+    @apply border-orange-500/20 bg-white/60;
+  }
+
+  .product-card-compact {
+    @apply rounded-[1.75rem] p-4;
+  }
+
+  .image-glass-container {
+    @apply relative h-64 w-full rounded-[2rem] overflow-hidden border border-white/60 bg-gradient-to-br from-surface-variant/40 via-white/60 to-white/10 p-6 transition-all duration-700 flex items-center justify-center;
+  }
+
+  .premium-glow {
+    @apply absolute inset-0 opacity-0 transition-opacity duration-1000 pointer-events-none;
+    background: radial-gradient(800px circle at var(--x) var(--y), var(--category-primary-glow, rgba(255,140,0,0.1)), transparent 40%);
+  }
+
+  .product-card-premium:hover .premium-glow {
+    @apply opacity-100;
+  }
+
+  .peek-container {
+    @apply flex flex-nowrap overflow-x-auto scroll-smooth snap-x snap-mandatory gap-10 pb-12 cursor-grab active:cursor-grabbing;
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+    min-height: 520px;
+  }
+
+  .peek-container::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, and Opera */
+  }
+
+  .section-nav {
+    @apply flex items-center space-x-6;
+  }
+
+  .social-inquiry-btn {
+    @apply p-4 rounded-2xl bg-white/80 border border-white/60 backdrop-blur-md shadow-lg transition-all duration-500 hover:scale-110 active:scale-95 flex items-center justify-center;
+  }
+
+  /* Custom Animations */
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .float-animation {
+    animation: float 6s ease-in-out infinite;
   }
 }
 
 /* Custom Premium Scrollbar */
-::-webkit-scrollbar {
-  width: 10px;
-}
-::-webkit-scrollbar-track {
-  background: #fff8f4;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(145, 77, 0, 0.2);
-  border-radius: 20px;
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: #fff8f4; }
+::-webkit-scrollbar-thumb { 
+  background: rgba(145, 77, 0, 0.2); 
+  border-radius: 20px; 
   border: 3px solid #fff8f4;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(145, 77, 0, 0.5);
-}
+::-webkit-scrollbar-thumb:hover { background: rgba(145, 77, 0, 0.5); }
