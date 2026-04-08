@@ -59,11 +59,15 @@
     @apply bg-white rounded-[2.5rem] p-6 shadow-sm border border-orange-100/50 hover:shadow-2xl transition-all duration-700;
   }
 
-  /* Reveal Animations Base - Default to Visible for Reliability */
+  /* Reveal Animations Base - Improved for reliability */
   .reveal-up {
+    opacity: 1; /* Force visible by default for reliability */
+    transform: translateY(0);
+    transition: all 1.2s cubic-bezier(0.2, 1, 0.3, 1);
+  }
+  .reveal-up.active {
     opacity: 1;
     transform: translateY(0);
-    transition: all 1s cubic-bezier(0.2, 1, 0.3, 1);
   }
 
   .reveal-up.active {
@@ -75,11 +79,10 @@
   .hide-scrollbar::-webkit-scrollbar { display: none; }
   .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-  /* UI/UX Pro Max: Product Cards */
+  /* UI/UX Pro Max: Product Cards - Simplified for Professional Clarity */
   .product-card-premium {
-    @apply relative w-full bg-white/60 backdrop-blur-[40px] border border-white/70 rounded-[2.5rem] p-6 transition-all duration-700 hover:shadow-[0_65px_120px_-25px_rgba(0,0,0,0.18)] hover:-translate-y-4 flex flex-col h-full overflow-hidden;
-    transform: perspective(1000px) rotateX(0deg);
-    box-shadow: 0 35px 80px -22px rgba(0,0,0,0.08);
+    @apply relative w-full bg-white border border-outline-variant/30 rounded-[2rem] p-6 transition-all duration-700 hover:shadow-[0_45px_100px_-20px_rgba(0,0,0,0.12)] hover:-translate-y-2 flex flex-col h-full overflow-hidden;
+    box-shadow: 0 15px 45px -12px rgba(0,0,0,0.06);
   }
 
   .product-card-premium::before {
@@ -100,7 +103,8 @@
   }
 
   .image-glass-container {
-    @apply relative h-64 w-full rounded-[2rem] overflow-hidden border border-white/60 bg-gradient-to-br from-surface-variant/40 via-white/60 to-white/10 p-6 transition-all duration-700 flex items-center justify-center;
+    @apply relative h-64 w-full rounded-[1.5rem] overflow-hidden bg-surface-variant/10 p-6 transition-all duration-700 flex items-center justify-center;
+    border: 1px solid rgba(0,0,0,0.03);
   }
 
   .premium-glow {
@@ -109,6 +113,71 @@
   }
 
   .product-card-premium:hover .premium-glow {
+    @apply opacity-100;
+  }
+
+  /* NEW: Ultra-Premium Card Glow & Floating */
+  .card-glow-interactive {
+    @apply absolute inset-0 pointer-events-none opacity-0 transition-opacity duration-500 overflow-hidden;
+    background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), var(--category-primary-glow, rgba(255,140,0,0.15)) 0%, transparent 80%);
+  }
+  .product-card-premium:hover .card-glow-interactive { @apply opacity-100; }
+
+  .floating-image {
+    animation: floating 3s ease-in-out infinite;
+  }
+  @keyframes floating {
+    0%, 100% { transform: translateY(0) scale(1.02); }
+    50% { transform: translateY(-12px) scale(1.05); }
+  }
+
+  /* Shimmer Effect for Buttons */
+  .shimmer-btn {
+    @apply relative overflow-hidden;
+  }
+  .shimmer-btn::after {
+    content: '';
+    @apply absolute -inset-[100%] bg-gradient-to-r from-transparent via-white/30 to-transparent -rotate-45 transition-all duration-1000;
+    transform: translateX(-100%);
+  }
+  .shimmer-btn:hover::after {
+    transform: translateX(100%);
+  }
+
+  /* Modal Animations & Utilities */
+  @keyframes fade-in {
+    from { opacity: 0; backdrop-filter: blur(0); }
+    to { opacity: 1; backdrop-filter: blur(20px); }
+  }
+  @keyframes scale-up {
+    from { opacity: 0; transform: scale(0.95) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+  .animate-scale-up { animation: scale-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+  .detail-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .detail-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .detail-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-primary/20 rounded-full hover:bg-primary/40 transition-colors;
+  }
+
+  /* Check Deal Button refinement */
+  .product-card-premium a {
+    @apply relative overflow-hidden transition-all duration-500 transform-gpu;
+  }
+  .product-card-premium a:active {
+    @apply scale-95 opacity-80;
+  }
+  .product-card-premium a::after {
+    content: '';
+    @apply absolute inset-0 bg-white/20 opacity-0 transition-opacity duration-300;
+  }
+  .product-card-premium a:hover::after {
     @apply opacity-100;
   }
 
@@ -129,6 +198,20 @@
 
   .social-inquiry-btn {
     @apply p-4 rounded-2xl bg-white/80 border border-white/60 backdrop-blur-md shadow-lg transition-all duration-500 hover:scale-110 active:scale-95 flex items-center justify-center;
+  }
+
+  /* Review System Styles */
+  [data-review-btn] {
+    @apply cursor-pointer hover:bg-primary hover:text-white transition-all duration-300;
+  }
+
+  #reviews-list::-webkit-scrollbar {
+    width: 6px;
+  }
+  #reviews-list::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 10px;
+    opacity: 0.2;
   }
 
   /* Custom Animations */
