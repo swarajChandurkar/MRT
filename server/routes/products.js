@@ -5,6 +5,28 @@ import { cacheMiddleware, invalidateCache } from '../middleware/cache.js';
 
 const router = express.Router();
 
+// Router-level Debug
+router.use((req, res, next) => {
+  console.log(`[PRODUCTS ROUTER] ${req.method} ${req.url}`);
+  next();
+});
+
+// Public: Get product by ID
+router.get('/:id', async (req, res) => {
+  console.log(`[DEBUG] Entered GET /:id with param: ${req.params.id}`);
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id: req.params.id },
+      include: { category: true },
+    });
+    console.log(`[DEBUG] Data found: ${product ? product.name : 'NULL'}`);
+    if (!product) return res.status(404).json({ error: 'Product not found' });
+    res.json(parseJsonFields(product));
+  } catch (err) {
+    console.error(`[DEBUG] Error:`, err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 function parseJsonFields(product) {
   return {
     ...product,
@@ -17,7 +39,7 @@ function parseJsonFields(product) {
 }
 
 // Public: List products with filters, sorting, pagination
-router.get('/', cacheMiddleware(null, 120), async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { category, badge, search, sort, order, page = 1, limit = 50, featured } = req.query;
     const where = { isActive: true };

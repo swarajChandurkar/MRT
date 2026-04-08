@@ -122,9 +122,10 @@ class MRTApp {
     if (!container) return;
 
     try {
+      // Surgical cache bust on core JSON data fetching only
       const [productsRes, themesRes] = await Promise.all([
-        fetch('/api/legacy/products'),
-        fetch('/api/legacy/themes')
+        fetch(`/api/legacy/products?_t=${Date.now()}`),
+        fetch(`/api/legacy/themes?_t=${Date.now()}`)
       ]);
 
       if (!productsRes.ok || !themesRes.ok) throw new Error('API error');
@@ -141,7 +142,7 @@ class MRTApp {
       }
     } catch (err) {
       console.error('Boutique sync failed:', err);
-      container.innerHTML = `<p class="col-span-full text-center serif italic opacity-50 py-20 text-on-surface">Data sync failed. Ensure server is active at 127.0.0.1:3001.</p>`;
+      container.innerHTML = `<p class="col-span-full text-center serif italic opacity-50 py-20 text-on-surface">Data sync failed. Please check connection.</p>`;
     } finally {
       if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
     }
@@ -179,51 +180,57 @@ class MRTApp {
     
     const ratingDisplay = `⭐ [${product.ratingValue || 4.8}/5 Recommended]`;
     
-    const cardClasses = variant === 'homepage'
-      ? 'product-card-premium product-card-compact group flex-shrink-0 w-[300px] md:w-[380px] snap-start'
-      : 'product-card-premium group snap-start block w-full border border-outline-variant/20 hover:border-transparent transition-all duration-300';
+    const cardClasses = variant === 'homepage'      ? 'product-card-premium product-card-compact group flex-shrink-0 w-[300px] md:w-[380px] snap-start cursor-pointer'
+      : 'product-card-premium group snap-start block w-full border border-outline-variant/20 hover:border-transparent transition-all duration-300 cursor-pointer';
 
     return `
-      <article class="${cardClasses}" data-premium-card>
+      <article class="${cardClasses} p-6 glass-panel-premium group" data-premium-card data-id="${product.id}">
         <div class="premium-glow"></div>
-        <div class="image-glass-container mb-4">
-          <div class="absolute top-4 left-4 z-20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] shadow-xl" style="background-color: var(--category-primary, #914d00); color: white;">
+        <div class="relative mb-8 rounded-[2rem] overflow-hidden bg-white/40 border border-white/60 p-12 flex items-center justify-center min-h-[320px] transition-all duration-700 group-hover:scale-[1.02] group-hover:bg-white/60">
+          <div class="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/40 to-transparent"></div>
+          
+          <div class="absolute top-6 left-6 z-30 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.35em] shadow-xl backdrop-blur-xl border border-white/40" style="background-color: var(--category-primary, #914d00); color: white;">
             ${badge}
           </div>
+
+          <div class="product-shine"></div>
+
           ${image
-            ? `<img src="${image}" alt="${name}" class="w-full h-full object-contain p-4 transition-all duration-700 group-hover:scale-105" loading="lazy">`
-            : `<div class="w-full h-full flex items-center justify-center opacity-20 text-on-surface"><span class="material-symbols-outlined text-6xl">image</span></div>`
+            ? `<img src="${image}" alt="${name}" class="w-full h-full object-contain relative z-10 transition-all duration-700 group-hover:scale-110 floating-image drop-shadow-[0_25px_25px_rgba(0,0,0,0.15)]">`
+            : `<div class="w-full h-full flex items-center justify-center opacity-20 text-on-surface"><span class="material-symbols-outlined text-7xl">image</span></div>`
           }
         </div>
-        <div class="flex flex-col flex-grow text-left">
-          <h3 class="text-xl md:text-2xl font-bold font-headline italic text-on-surface mb-2 leading-tight">${name}</h3>
-          <p class="text-sm text-on-surface-variant font-body mb-4 line-clamp-1 opacity-90">${shortDesc}</p>
-          
-          <ul class="mb-5 space-y-2 flex-grow">
-            ${benefits.map(b => `
-              <li class="flex items-start text-[13px] text-on-surface-variant font-body leading-snug">
-                <span class="mr-2 opacity-60 mt-0.5">•</span>
-                <span>${b}</span>
-              </li>
-            `).join('')}
-          </ul>
-          
-          <div class="mb-5 flex flex-col gap-1">
-            <p class="text-[11px] font-bold uppercase tracking-[0.1em] text-primary">${ratingDisplay}</p>
+        
+        <div class="flex flex-col flex-grow text-left relative z-20">
+          <div class="flex items-center gap-3 mb-3">
+             <span class="text-[10px] uppercase font-black tracking-[0.4em] text-primary/40">${product.category || 'Collection'}</span>
+             <div class="h-[1px] flex-grow bg-primary/10"></div>
           </div>
+          <h3 class="text-3xl md:text-4xl font-headline italic text-on-surface mb-4 leading-none tracking-tighter group-hover:text-primary transition-colors">${name}</h3>
+          <p class="text-base text-on-surface-variant font-body mb-8 line-clamp-2 opacity-60 leading-relaxed font-medium capitalize italic">${shortDesc}</p>
           
-          <div class="mt-auto flex flex-col gap-3 relative z-20">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <a href="${affiliateUrl}" target="_blank" class="rounded-xl py-3 px-2 text-center text-[10px] font-bold uppercase tracking-wider shadow-md transition-all hover:brightness-110 active:scale-95 flex items-center justify-center gap-2" style="background-color: #FF9900; color: #111;">
-                <span class="material-symbols-outlined text-sm">shopping_cart</span>
-                Check Price on Amazon
-              </a>
-              <a href="${affiliateUrl}" target="_blank" class="rounded-xl py-3 px-2 text-center text-[10px] font-bold uppercase tracking-wider border border-on-surface/20 hover:bg-on-surface/5 transition-all active:scale-95 flex items-center justify-center gap-2">
-                <span class="material-symbols-outlined text-sm">visibility</span>
-                View Deal on Temu
-              </a>
+          <div class="flex flex-col gap-5">
+            <div class="flex items-center justify-between pb-6 border-b border-primary/5">
+               <div class="flex flex-col">
+                 <span class="text-[10px] uppercase font-black tracking-widest text-primary/40 mb-1">Elite Pricing</span>
+                 <span class="text-4xl font-bold text-on-surface tracking-tighter">$${product.price ? product.price.toFixed(2) : '39.99'}</span>
+               </div>
+               <div class="flex items-center gap-2 bg-primary/5 px-4 py-2 rounded-2xl border border-primary/10">
+                  <span class="material-symbols-outlined text-sm text-primary fill-primary">star</span>
+                  <span class="text-xs font-black text-primary">${product.ratingValue || 4.8}</span>
+               </div>
             </div>
-            <p class="text-[9px] text-center text-on-surface-variant opacity-40 mt-1 italic leading-tight">Price and availability may vary on the partner website.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <a href="${affiliateUrl}" target="_blank" class="bg-[#FF9900] text-[#111] rounded-2xl py-5 px-4 text-center text-[10px] font-black uppercase tracking-[0.25em] shadow-2xl shadow-orange-500/20 hover:scale-105 active:scale-95 transition-all duration-500 flex items-center justify-center gap-3">
+                <span class="material-symbols-outlined text-base">shopping_bag</span>
+                Amazon Selection
+              </a>
+              <button data-id="${product.id}" class="glass-panel-premium text-primary rounded-2xl py-5 px-4 text-center text-[10px] font-black uppercase tracking-[0.25em] hover:bg-primary hover:text-white transition-all duration-500 active:scale-95 flex items-center justify-center gap-3" onclick="window.mrtApp.openQuickView('${product.id}')">
+                <span class="material-symbols-outlined text-base">auto_awesome</span>
+                Pro Max View
+              </button>
+            </div>
           </div>
         </div>
       </article>
@@ -283,10 +290,10 @@ class MRTApp {
         const rect = card.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        card.style.setProperty('--x', `${x}px`);
-        card.style.setProperty('--y', `${y}px`);
+        card.style.setProperty('--mouse-x', `${(x / rect.width) * 100}%`);
+        card.style.setProperty('--mouse-y', `${(y / rect.height) * 100}%`);
 
-        // Subtle 3D Tilt - Refined for Professional feel
+        // Subtle 3D Tilt - Enhanced for Premium feel
         const xc = rect.width / 2;
         const yc = rect.height / 2;
         const dx = (x - xc) / (rect.width / 2);
@@ -294,10 +301,11 @@ class MRTApp {
 
         if (typeof gsap !== 'undefined') {
           gsap.to(card, {
-            rotateY: dx * 4,
-            rotateX: -dy * 4,
-            duration: 0.5,
-            ease: 'power1.out'
+            rotateY: dx * 8, // More pronounced tilt
+            rotateX: -dy * 8,
+            boxShadow: `${-dx * 20}px ${-dy * 20}px 50px -10px rgba(0,0,0,0.1)`,
+            duration: 0.4,
+            ease: 'power2.out'
           });
         }
       });
@@ -374,8 +382,8 @@ class MRTApp {
   async renderFeaturedSegments() {
     try {
       const [productsRes, themesRes] = await Promise.all([
-        fetch('/api/legacy/products'),
-        fetch('/api/legacy/themes')
+        fetch(`/api/legacy/products?_t=${Date.now()}`),
+        fetch(`/api/legacy/themes?_t=${Date.now()}`)
       ]);
       
       if (productsRes.ok && themesRes.ok) {
@@ -526,15 +534,137 @@ class MRTApp {
       });
     });
 
-    // Review Modal Listeners
+    // Quick View & Review Modal Listeners
     document.addEventListener('click', async (e) => {
-      const btn = e.target.closest('[data-review-btn]');
-      if (btn) {
-        this.openReviewModal(btn.dataset.productId, btn.dataset.productName);
+      const card = e.target.closest('[data-premium-card]');
+      const buyBtn = e.target.closest('.shimmer-btn'); // Link to Amazon
+      
+      // If clicking card but NOT direct buy button
+      if (card && !buyBtn) {
+        const productId = card.dataset.id;
+        this.openQuickView(productId);
+      }
+
+      const reviewBtn = e.target.closest('[data-review-btn]');
+      if (reviewBtn) {
+        this.openReviewModal(reviewBtn.dataset.productId, reviewBtn.dataset.productName);
       }
     });
   }
 
+  async openQuickView(productId) {
+    try {
+      // PRO MAX: Resilient dual-path fetching for dev stability (127.0.0.1 priority)
+      let response = await fetch(`/api/products/${productId}?_t=${Date.now()}`);
+      
+      if (!response.ok) {
+        console.warn(`[MRT] Relative API fetch failed (${response.status}), attempting direct bypass to 127.0.0.1...`);
+        response = await fetch(`http://127.0.0.1:3001/api/products/${productId}?_t=${Date.now()}`);
+      }
+
+      if (!response.ok) throw new Error('Product details unavailable');
+      const product = await response.json();
+
+      let reviews = [];
+      try {
+        let reviewsRes = await fetch(`/api/reviews/${productId}?_t=${Date.now()}`);
+        if (!reviewsRes.ok) {
+           reviewsRes = await fetch(`http://127.0.0.1:3001/api/reviews/${productId}?_t=${Date.now()}`);
+        }
+        if (reviewsRes.ok) reviews = await reviewsRes.json();
+      } catch(e) { console.warn('Reviews fetch failed, continuing with empty list'); }
+
+      const benefits = (product.keyBenefits ? (typeof product.keyBenefits === 'string' ? JSON.parse(product.keyBenefits) : product.keyBenefits) : []).slice(0, 4);
+
+      const overlay = document.createElement('div');
+      overlay.className = 'fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4 md:p-8 animate-fade-in';
+      overlay.innerHTML = `
+        <div class="bg-surface w-full max-w-6xl rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col md:flex-row max-h-[95vh] animate-scale-up border border-white/10">
+          <button class="absolute top-8 right-8 z-50 text-on-surface/40 hover:text-on-surface bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all" id="close-quickview">
+            <span class="material-symbols-outlined text-3xl">close</span>
+          </button>
+          
+          <!-- Image Section -->
+          <div class="w-full md:w-1/2 bg-surface-variant/10 p-12 flex items-center justify-center relative group min-h-[400px]">
+            <div class="premium-glow-bg absolute inset-0 opacity-20 transition-opacity duration-1000"></div>
+            <img src="${product.image}" alt="${product.name}" class="w-full h-full object-contain relative z-10 floating-image drop-shadow-2xl">
+          </div>
+          
+          <!-- Info Section -->
+          <div class="w-full md:w-1/2 p-12 overflow-y-auto detail-scrollbar bg-surface/50 backdrop-blur-md">
+            <div class="mb-10">
+              <div class="flex items-center gap-3 mb-4">
+                <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary text-white">${product.badge || 'Elite'}</span>
+                <div class="flex items-center gap-1 text-primary">
+                   <span class="material-symbols-outlined text-lg fill-primary">star</span>
+                   <span class="font-bold text-sm">${product.ratingValue || 4.9} / 5</span>
+                </div>
+              </div>
+              <h2 class="text-4xl md:text-5xl font-headline italic text-on-surface mb-4 leading-tight">${product.name}</h2>
+              <p class="text-lg text-on-surface-variant font-body opacity-80 leading-relaxed">${product.shortBenefit}</p>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+              ${benefits.map(b => `
+                <div class="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                  <span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1">verified</span>
+                  <span class="text-xs font-bold text-on-surface opacity-80 uppercase tracking-wide text-left">${b}</span>
+                </div>
+              `).join('')}
+            </div>
+            
+            <!-- Price & Action -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-6 mb-12 p-8 rounded-3xl bg-primary/5 border border-primary/10">
+              <div class="text-center sm:text-left">
+                <p class="text-[10px] uppercase font-black tracking-widest text-primary opacity-60 mb-1">Store Price</p>
+                <span class="text-4xl font-bold text-on-surface">$${product.price ? product.price.toFixed(2) : '39.99'}</span>
+              </div>
+              <a href="${product.affiliateUrl}" target="_blank" class="shimmer-btn flex-grow sm:flex-grow-0 w-full sm:w-auto px-12 py-5 rounded-2xl bg-[#FF9900] text-[#111] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
+                <span class="material-symbols-outlined">shopping_cart</span>
+                Buy on Amazon
+              </a>
+            </div>
+            
+            <!-- Reviews Segment -->
+            <div class="border-t border-outline-variant/10 pt-10">
+              <div class="flex items-center justify-between mb-8">
+                <h3 class="text-2xl font-headline italic">Recent <i>Insights</i></h3>
+                <span class="text-xs font-bold uppercase tracking-widest opacity-40">${reviews.length} Reviews</span>
+              </div>
+              
+              <div class="space-y-6">
+                ${reviews.length > 0 ? reviews.map(r => `
+                  <div class="p-6 rounded-3xl bg-white/5 border border-white/10 hover:border-primary/20 transition-all group/rev">
+                    <div class="flex justify-between items-center mb-4">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-black text-primary">${r.userName.charAt(0)}</div>
+                        <span class="text-xs font-black uppercase tracking-wider text-on-surface">${r.userName}</span>
+                        ${r.isVerified ? `<span class="material-symbols-outlined text-[14px] text-primary" style="font-variation-settings: 'FILL' 1">verified</span>` : ''}
+                      </div>
+                      <div class="flex text-primary opacity-60">
+                        ${Array(r.rating).fill('<span class="material-symbols-outlined text-[10px] fill-primary">star</span>').join('')}
+                      </div>
+                    </div>
+                    <p class="text-sm font-body italic text-on-surface-variant opacity-80 leading-relaxed group-hover/rev:opacity-100 transition-opacity">"${r.comment}"</p>
+                  </div>
+                `).join('') : `<p class="text-center opacity-30 italic py-10">No insights shared yet.</p>`}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+
+      const close = () => { overlay.remove(); document.body.style.overflow = 'auto'; };
+      overlay.querySelector('#close-quickview').onclick = close;
+      overlay.onclick = (e) => { if (e.target === overlay) close(); };
+
+    } catch (err) {
+      console.error('Quick View Error:', err);
+    }
+  }
   async openReviewModal(productId, productName) {
     // Create modal overlay
     const overlay = document.createElement('div');

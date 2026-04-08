@@ -2,12 +2,22 @@ const API = '/api';
 let token = localStorage.getItem('mrt_admin_token');
 let currentView = 'dashboard';
 
-// === API Helper ===
+// === API Helper (ENHANCED: Surgical Cache-Busting) ===
 async function api(path, opts = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
+  
+  let finalPath = path;
+  
+  // Only cache-bust highly dynamic routes (products, categories, stats, reviews)
+  const needsCacheBust = path.includes('/products') || path.includes('/categories') || path.includes('/stats') || path.includes('/reviews');
+  
+  if ((!opts.method || opts.method === 'GET') && needsCacheBust) {
+    finalPath += (path.includes('?') ? '&' : '?') + `_t=${Date.now()}`;
+  }
+
   try {
-    const res = await fetch(`${API}${path}`, { ...opts, headers });
+    const res = await fetch(`${API}${finalPath}`, { ...opts, headers });
     if (res.status === 401) { logout(); return null; }
     const data = await res.json();
     if (!res.ok) {
@@ -48,7 +58,7 @@ function render() {
   renderLayout(app);
 }
 
-// === Login ===
+// === Login (ENHANCED: Removed Hardcoded Test Credentials) ===
 function renderLogin(app) {
   app.innerHTML = `
     <div class="login-container">
@@ -58,11 +68,11 @@ function renderLogin(app) {
         <form id="login-form">
           <div class="form-group">
             <label>Email</label>
-            <input type="email" id="login-email" value="admin@mrt.com" required>
+            <input type="email" id="login-email" placeholder="admin@example.com" required>
           </div>
           <div class="form-group">
             <label>Password</label>
-            <input type="password" id="login-password" value="admin123" required>
+            <input type="password" id="login-password" placeholder="••••••••" required>
           </div>
           <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:0.875rem;">
             <span class="material-symbols-outlined">login</span> Sign In

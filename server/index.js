@@ -33,6 +33,16 @@ app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: false 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
+// ENHANCED: Prevent API Caching ONLY for specific data routes to save server load
+app.use('/api', (req, res, next) => {
+  // Only aggressively prevent caching on dynamic data routes, let static assets/media cache normally
+  if (req.method === 'GET' && !req.url.includes('/media')) {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
 // Debug Logger
 app.use((req, res, next) => {
   console.log(`[API] ${req.method} ${req.url}`);
@@ -52,7 +62,7 @@ app.use('/api/reviews', reviewsRouter);
 app.use('/api/media', mediaRouter);
 app.use('/api/admin', adminRouter);
 
-// Legacy compatibility: Return products as flat array for existing frontend
+// ENHANCED: Resilient legacy compatibility route WITH Missing Category Alerts
 app.get('/api/legacy/products', async (req, res) => {
   try {
     const products = await prisma.product.findMany({
@@ -60,17 +70,57 @@ app.get('/api/legacy/products', async (req, res) => {
       include: { category: { select: { slug: true } } },
       orderBy: { sortOrder: 'asc' },
     });
-    res.json(products.map(p => ({
-      ...p,
-      category: p.category.slug,
-      keyBenefits: JSON.parse(p.keyBenefits || '[]'),
-      tags: JSON.parse(p.tags || '[]'),
-    })));
+    res.json(products.map(p => {
+      // Missing Category Alert System
+      if (!p.category) {
+        console.warn(`[CMS ALERT] Product missing category link: ID [${p.id}] - "${p.name}". Falling back to 'uncategorized'.`);
+      }
+
+      let keyBenefits = [];
+      try { keyBenefits = JSON.parse(p.keyBenefits || '[]'); } catch(e) { keyBenefits = p.keyBenefits || []; }
+
+      return {
+        ...p,
+        name: p.name,
+        shortBenefit: p.shortBenefit,
+        price: p.price,
+        ratingValue: p.ratingValue,
+        badge: p.badge,
+        image: p.image,
+        category: p.category ? p.category.slug : 'uncategorized',
+        keyBenefits: keyBenefits,
+        tags: JSON.parse(p.tags || '[]'),
+      };
+    }));
   } catch (err) {
+    console.error('Legacy Products Fetch Error:', err);
     res.status(500).json([]);
   }
 });
 
+// Single Product Fetch (For Quick View) - DEFINED DIRECTLY HERE for priority
+app.get('/api/products/:id', async (req, res) => {
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id: req.params.id },
+      include: { category: true }
+    });
+    if (!product) return res.status(404).json({ error: 'Product not found' });
+    
+    let keyBenefits = [];
+    try { keyBenefits = JSON.parse(product.keyBenefits || '[]'); } catch(e) { keyBenefits = product.keyBenefits || []; }
+
+    res.json({
+      ...product,
+      keyBenefits: keyBenefits,
+      images: JSON.parse(product.images || '[]'),
+      tags: JSON.parse(product.tags || '[]'),
+    });
+  } catch (err) {
+    console.error('API Product Fetch Error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 // Legacy: Themes as object keyed by slug
 app.get('/api/legacy/themes', async (req, res) => {
   try {

@@ -4,26 +4,65 @@
 
 @layer base {
   :root {
-    --primary: #914d00;
-    --primary-container: #ffdcc0;
-    --on-primary: #ffffff;
-    --surface: #fff8f4;
-    --surface-variant: #f4e0d4;
-    --on-surface: #201a17;
-    --on-surface-variant: #52443c;
-    --outline: #85736a;
-    --outline-variant: #d7c2b8;
-    --glass-blur: 24px;
-  }
+  --primary: #914d00;
+  --on-primary: #ffffff;
+  --primary-container: #ffdcc0;
+  --on-primary-container: #2f1500;
+  
+  --secondary: #745a43;
+  --on-secondary: #ffffff;
+  --secondary-container: #ffdfc5;
+  --on-secondary-container: #2b1706;
+  
+  --surface: #fffbff;
+  --on-surface: #201a17;
+  --surface-variant: #f4e0d4;
+  --on-surface-variant: #52443d;
+  
+  --outline: #85736b;
+  --outline-variant: #d7c2b9;
+  
+  --shadow: rgba(145, 77, 0, 0.08);
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.8);
+  
+  /* PRO MAX TOKENS */
+  --premium-gradient: linear-gradient(135deg, #fff 0%, #fdf5f0 100%);
+  --liquid-glass: blur(24px) saturate(180%);
+  --boutique-shadow: 0 20px 50px -12px rgba(145, 77, 0, 0.15);
+}
 
+.font-headline { font-family: 'Noto Serif', serif; }
+.font-body { font-family: 'Manrope', sans-serif; }
+
+/* Liquid Glass v2 Utilities */
+.glass-panel-premium {
+  background: var(--glass-bg);
+  backdrop-filter: var(--liquid-glass);
+  -webkit-backdrop-filter: var(--liquid-glass);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--boutique-shadow);
+}
+
+.text-reveal-mask {
+  mask-clip: text;
+  -webkit-mask-clip: text;
+}
+
+@layer base {
   body {
-    @apply bg-[#fff8f4] text-[#201a17] antialiased selection:bg-orange-200;
-    font-family: 'Manrope', sans-serif;
+    @apply font-body bg-surface text-on-surface selection:bg-primary selection:text-white;
+    -webkit-font-smoothing: antialiased;
   }
+}
 
-  h1, h2, h3, h4, .serif {
-    font-family: 'Noto Serif', serif;
-  }
+.premium-glow {
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(circle at center, var(--primary) 0%, transparent 70%);
+  opacity: 0.05;
+  filter: blur(60px);
+  pointer-events: none;
 }
 
 @layer components {
@@ -116,6 +155,55 @@
     @apply opacity-100;
   }
 
+  /* NEW: Ultra-Premium Card Glow & Floating */
+  .card-glow-interactive {
+    @apply absolute inset-0 pointer-events-none opacity-0 transition-opacity duration-500 overflow-hidden;
+    background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), var(--category-primary-glow, rgba(255,140,0,0.15)) 0%, transparent 80%);
+  }
+  .product-card-premium:hover .card-glow-interactive { @apply opacity-100; }
+
+  .floating-image {
+    animation: floating 3s ease-in-out infinite;
+  }
+  @keyframes floating {
+    0%, 100% { transform: translateY(0) scale(1.02); }
+    50% { transform: translateY(-12px) scale(1.05); }
+  }
+
+  /* Shimmer Effect for Buttons */
+  .shimmer-btn {
+    @apply relative overflow-hidden;
+  }
+  .shimmer-btn::after {
+    content: '';
+    @apply absolute -inset-[100%] bg-gradient-to-r from-transparent via-white/30 to-transparent -rotate-45 transition-all duration-1000;
+    transform: translateX(-100%);
+  }
+  .shimmer-btn:hover::after {
+    transform: translateX(100%);
+  }
+
+  /* Modal Animations & Utilities */
+  @keyframes fade-in {
+    from { opacity: 0; backdrop-filter: blur(0); }
+    to { opacity: 1; backdrop-filter: blur(20px); }
+  }
+  @keyframes scale-up {
+    from { opacity: 0; transform: scale(0.95) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+  .animate-scale-up { animation: scale-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+  .detail-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .detail-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .detail-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-primary/20 rounded-full hover:bg-primary/40 transition-colors;
+  }
   /* Check Deal Button refinement */
   .product-card-premium a {
     @apply relative overflow-hidden transition-all duration-500 transform-gpu;
@@ -164,14 +252,38 @@
     opacity: 0.2;
   }
 
-  /* Custom Animations */
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+  /* PRO MAX: Reflection Shine & Floating Dynamics */
+  .product-shine {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(255, 255, 255, 0.4),
+      transparent
+    );
+    transform: skewX(-25deg);
+    transition: 0.7s;
+    z-index: 20;
+    pointer-events: none;
   }
 
-  .float-animation {
-    animation: float 6s ease-in-out infinite;
+  .group:hover .product-shine {
+    left: 200%;
+  }
+
+  .floating-image {
+    animation: floating_elite 6s ease-in-out infinite;
+  }
+
+  @keyframes floating_elite {
+    0% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(2deg); }
+    100% { transform: translateY(0px) rotate(0deg); }
+  }
   }
 }
 
