@@ -1,0 +1,157 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("EDITOR")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Category {
+  id              String          @id @default(cuid())
+  slug            String          @unique
+  name            String
+  description     String?
+  image           String?
+  parentId        String?
+  parent          Category?       @relation("CategoryTree", fields: [parentId], references: [id])
+  children        Category[]      @relation("CategoryTree")
+  products        Product[]
+  theme           CategoryTheme?
+  metaTitle       String?
+  metaDescription String?
+  sortOrder       Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model CategoryTheme {
+  id         String   @id @default(cuid())
+  categoryId String   @unique
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  primary    String   @default("#914d00")
+  secondary  String   @default("#f28c28")
+  title      String
+  subtitle   String?
+  seoTitle   String?
+  seoIntro   String?
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  shortBenefit    String?
+  description     String?
+  price           Float    @default(0)
+  compareAtPrice  Float?
+  image           String?
+  images          String   @default("[]")
+  badge           String?
+  rating          String?
+  ratingValue     Float    @default(0)
+  reviewCount     Int      @default(0)
+  categoryId      String
+  category        Category @relation(fields: [categoryId], references: [id])
+  tags            String   @default("[]")
+  keyBenefits     String   @default("[]")
+  pros            String   @default("[]")
+  cons            String   @default("[]")
+  affiliateUrl    String?
+  affiliateSource String?
+  isActive        Boolean  @default(true)
+  isFeatured      Boolean  @default(false)
+  sortOrder       Int      @default(0)
+  metaTitle       String?
+  metaDescription String?
+  clicks          AffiliateClick[]
+  wishlistItems   WishlistItem[]
+  comparisonItems ComparisonItem[]
+  reviews         Review[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model AffiliateClick {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  source    String?
+  userAgent String?
+  ipHash    String?
+  sessionId String?
+  createdAt DateTime @default(now())
+}
+
+model Testimonial {
+  id        String   @id @default(cuid())
+  name      String
+  location  String
+  quote     String
+  text      String
+  region    String
+  rating    Int      @default(5)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  sessionId String
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([sessionId, productId])
+}
+
+model ComparisonItem {
+  id        String   @id @default(cuid())
+  sessionId String
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([sessionId, productId])
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  source    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model MediaFile {
+  id           String   @id @default(cuid())
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  url          String
+  altText      String?
+  uploadedBy   String?
+  createdAt    DateTime @default(now())
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userName   String
+  rating     Int      @default(5)
+  comment    String
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
