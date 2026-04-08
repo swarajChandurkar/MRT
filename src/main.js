@@ -185,55 +185,53 @@ class MRTApp {
       : 'product-card-premium group snap-start block w-full border border-outline-variant/20 hover:border-transparent transition-all duration-300 cursor-pointer';
 
     return `
-      <article class="${cardClasses}" data-premium-card data-id="${product.id}">
-        <div class="card-glow-interactive"></div>
-        <div class="image-glass-container mb-6 group">
-          <div class="absolute top-4 left-4 z-30 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.25em] shadow-2xl backdrop-blur-md border border-white/20" style="background-color: var(--category-primary, #914d00); color: white;">
+      <article class="${cardClasses} p-6 glass-panel-premium group" data-premium-card data-id="${product.id}">
+        <div class="premium-glow"></div>
+        <div class="relative mb-8 rounded-[2rem] overflow-hidden bg-white/40 border border-white/60 p-12 flex items-center justify-center min-h-[320px] transition-all duration-700 group-hover:scale-[1.02] group-hover:bg-white/60">
+          <div class="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/40 to-transparent"></div>
+          
+          <div class="absolute top-6 left-6 z-30 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em] shadow-xl backdrop-blur-xl border border-white/40" style="background-color: var(--category-primary, #914d00); color: white;">
             ${badge}
           </div>
+
+          <div class="product-shine"></div>
+
           ${image
-            ? `<img src="${image}" alt="${name}" class="w-full h-full object-contain p-6 transition-all duration-700 group-hover:scale-110 floating-image" loading="lazy">`
+            ? `<img src="${image}" alt="${name}" class="w-full h-full object-contain relative z-10 transition-all duration-700 group-hover:scale-110 floating-image drop-shadow-[0_25px_25px_rgba(0,0,0,0.15)]">`
             : `<div class="w-full h-full flex items-center justify-center opacity-20 text-on-surface"><span class="material-symbols-outlined text-7xl">image</span></div>`
           }
-          <div class="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
         </div>
         
         <div class="flex flex-col flex-grow text-left relative z-20">
-          <div class="flex items-center gap-2 mb-2 opacity-60">
-             <span class="text-[10px] uppercase font-bold tracking-widest">${product.category || 'Collection'}</span>
+          <div class="flex items-center gap-3 mb-3">
+             <span class="text-[10px] uppercase font-black tracking-[0.4em] text-primary/40">${product.category || 'Collection'}</span>
+             <div class="h-[1px] flex-grow bg-primary/10"></div>
           </div>
-          <h3 class="text-2xl md:text-3xl font-bold font-headline italic text-on-surface mb-3 leading-tight tracking-tight group-hover:text-primary transition-colors">${name}</h3>
-          <p class="text-sm text-on-surface-variant font-body mb-6 line-clamp-2 opacity-80 leading-relaxed">${shortDesc}</p>
+          <h3 class="text-3xl md:text-4xl font-headline italic text-on-surface mb-4 leading-none tracking-tighter group-hover:text-primary transition-colors">${name}</h3>
+          <p class="text-base text-on-surface-variant font-body mb-8 line-clamp-2 opacity-60 leading-relaxed font-medium capitalize italic">${shortDesc}</p>
           
-          <div class="grid grid-cols-1 gap-4 mb-8">
-            ${benefits.map(b => `
-              <div class="flex items-center text-[12px] text-on-surface-variant font-body py-2 px-4 rounded-xl bg-surface-variant/5 border border-outline-variant/5">
-                <span class="material-symbols-outlined text-[14px] mr-3 text-primary" style="font-variation-settings: 'FILL' 1">verified</span>
-                <span class="font-medium">${b}</span>
-              </div>
-            `).join('')}
-          </div>
-          
-          <div class="mt-auto flex flex-col gap-4">
-            <div class="flex items-center justify-between mb-2">
-               <span class="text-2xl font-bold text-on-surface">$${product.price ? product.price.toFixed(2) : '39.99'}</span>
-               <div class="flex items-center gap-1 bg-primary/10 px-3 py-1 rounded-full">
-                  <span class="material-symbols-outlined text-xs text-primary fill-primary">star</span>
-                  <span class="text-[10px] font-black text-primary">${product.ratingValue || 4.8}</span>
+          <div class="flex flex-col gap-5">
+            <div class="flex items-center justify-between pb-6 border-b border-primary/5">
+               <div class="flex flex-col">
+                 <span class="text-[10px] uppercase font-black tracking-widest text-primary/40 mb-1">Elite Pricing</span>
+                 <span class="text-4xl font-bold text-on-surface tracking-tighter">$${product.price ? product.price.toFixed(2) : '39.99'}</span>
+               </div>
+               <div class="flex items-center gap-2 bg-primary/5 px-4 py-2 rounded-2xl border border-primary/10">
+                  <span class="material-symbols-outlined text-sm text-primary fill-primary">star</span>
+                  <span class="text-xs font-black text-primary">${product.ratingValue || 4.8}</span>
                </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <a href="${affiliateUrl}" target="_blank" class="shimmer-btn rounded-2xl py-4 px-2 text-center text-[10px] font-black uppercase tracking-widest shadow-lg transition-all hover:shadow-primary/30 active:scale-95 flex items-center justify-center gap-2" style="background-color: #FF9900; color: #111;">
-                <span class="material-symbols-outlined text-base">shopping_cart</span>
-                Buy on Amazon
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <a href="${affiliateUrl}" target="_blank" class="bg-[#FF9900] text-[#111] rounded-2xl py-5 px-4 text-center text-[10px] font-black uppercase tracking-[0.25em] shadow-2xl shadow-orange-500/20 hover:scale-105 active:scale-95 transition-all duration-500 flex items-center justify-center gap-3">
+                <span class="material-symbols-outlined text-base">shopping_bag</span>
+                Amazon Selection
               </a>
-              <a href="${affiliateUrl}" target="_blank" class="rounded-2xl py-4 px-2 text-center text-[10px] font-black uppercase tracking-widest border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all active:scale-95 flex items-center justify-center gap-3 text-primary">
-                <span class="material-symbols-outlined text-base">visibility</span>
-                View Deal
-              </a>
+              <button data-id="${product.id}" class="glass-panel-premium text-primary rounded-2xl py-5 px-4 text-center text-[10px] font-black uppercase tracking-[0.25em] hover:bg-primary hover:text-white transition-all duration-500 active:scale-95 flex items-center justify-center gap-3" onclick="window.mrtApp.openQuickView('${product.id}')">
+                <span class="material-symbols-outlined text-base">auto_awesome</span>
+                Pro Max View
+              </button>
             </div>
-            <p class="text-[9px] text-center text-on-surface-variant opacity-30 mt-2 font-bold tracking-tighter italic">Official Partner Links • Verified Pricing</p>
           </div>
         </div>
       </article>
