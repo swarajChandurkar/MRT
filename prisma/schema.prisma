@@ -78,6 +78,7 @@ model Testimonial {
   text      String?
   region    String?
   rating    Int      @default(5)
+  isActive  Boolean  @default(true)
   sortOrder Int      @default(1)
   createdAt DateTime @default(now())
 }
