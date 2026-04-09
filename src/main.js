@@ -272,13 +272,31 @@ class MRTApp {
     const formattedRating = (parseFloat(product.ratingValue) || 4.8).toFixed(1);
     const ratingDisplay = `⭐ [${formattedRating}/5 Recommended]`;
     
+    // RELEVANCE FIX: Use category and name for highly contextual fallback images
+    const searchTerms = `${product.category || 'Product'},${product.name || ''}`.replace(/[^a-zA-Z0-9,]/g, '').toLowerCase();
+    const fallbackImage = `https://loremflickr.com/600/600/${searchTerms}?lock=${product.id || 1}`;
+    
+    // For Resilience: Stringify basic product info to allow instant modal loading
+    const productData = JSON.stringify({
+      id: product.id,
+      name: product.name,
+      shortBenefit: product.shortBenefit || product.shortDescription,
+      price: product.price,
+      image: product.image,
+      category: product.category,
+      ratingValue: product.ratingValue,
+      badge: product.badge,
+      affiliateUrl: product.affiliateUrl,
+      keyBenefits: product.keyBenefits
+    }).replace(/"/g, '&quot;');
+
     // FIX 2: Ensure uniform card sizing using 'h-full flex flex-col'
     const cardClasses = variant === 'homepage'
       ? 'product-card-premium group flex flex-col flex-shrink-0 w-[300px] md:w-[380px] snap-start h-full'
       : 'product-card-premium group flex flex-col snap-start w-full border border-outline-variant/20 hover:border-transparent transition-all duration-300 h-full';
 
     return `
-      <article class="${cardClasses}" data-premium-card data-id="${product.id}">
+      <article class="${cardClasses}" data-premium-card data-id="${product.id}" data-product-json="${productData}">
         <div class="premium-glow"></div>
         
         <div class="relative w-full h-48 md:h-56 bg-surface/50 rounded-t-2xl overflow-hidden mb-4 flex items-center justify-center border-b border-outline-variant/10">
@@ -286,8 +304,8 @@ class MRTApp {
             ${badge}
           </div>
           ${image
-            ? `<img src="${image}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&q=80';this.onerror=null;">`
-            : `<div class="w-full h-full flex items-center justify-center opacity-20 text-on-surface"><span class="material-symbols-outlined text-6xl">image</span></div>`
+            ? `<img src="${image}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" onerror="this.src='${fallbackImage}';this.onerror=null;">`
+            : `<img src="${fallbackImage}" alt="${name}" class="w-full h-full object-cover opacity-80">`
           }
         </div>
         
@@ -310,11 +328,11 @@ class MRTApp {
           
           <div class="mt-auto flex flex-col gap-3 relative z-20">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <a href="${affiliateUrl}" target="_blank" class="rounded-xl py-3 px-2 text-center text-[10px] font-bold uppercase tracking-wider shadow-md transition-all hover:brightness-110 active:scale-95 flex items-center justify-center gap-2" style="background-color: #FF9900; color: #111;">
+              <a href="${affiliateUrl}" target="_blank" class="amazon-btn rounded-xl py-3 px-2 text-center text-[10px] font-bold uppercase tracking-wider shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
                 <span class="material-symbols-outlined text-sm">shopping_cart</span>
-                Check Price
+                Check Price on Amazon
               </a>
-              <button data-quick-view-btn data-product-id="${product.id}" class="rounded-xl py-3 px-2 text-center text-[10px] font-bold uppercase tracking-wider border border-on-surface/20 hover:bg-on-surface/5 transition-all active:scale-95 flex items-center justify-center gap-2">
+              <button data-quick-view-btn data-product-id="${product.id}" class="rounded-xl py-3 px-2 text-center text-[10px] font-bold uppercase tracking-wider border border-on-surface/20 hover:bg-on-surface/5 transition-all text-on-surface active:scale-95 flex items-center justify-center gap-2">
                 <span class="material-symbols-outlined text-sm">visibility</span>
                 View Detail
               </button>
@@ -599,134 +617,160 @@ class MRTApp {
       
       const quickBtn = e.target.closest('[data-quick-view-btn]');
       if (quickBtn) {
+        e.preventDefault();
+        e.stopPropagation();
         this.openQuickView(quickBtn.dataset.productId);
         return;
-      }
-
-      // If clicking card but NOT direct buy button
+         // If clicking card but NOT direct buy button
       if (card && !buyBtn) {
         const productId = card.dataset.id;
-        this.openQuickView(productId);
+        const productJson = card.dataset.productJson;
+        this.openQuickView(productId, productJson ? JSON.parse(productJson.replace(/&quot;/g, '"')) : null);
       }
     });
   }
 
-  async openQuickView(productId) {
+  async openQuickView(productId, initialData = null) {
     try {
-      let response;
-      try {
-        response = await this.fetchAPI(`/api/products/${productId}`);
-      } catch (err) {
-        console.warn(`[MRT] Relative API fetch failed, attempting bypass...`);
-        response = await this.fetchAPI(`http://127.0.0.1:3001/api/products/${productId}`);
-      }
-
-      const product = await response.json();
-
-      let reviews = [];
-      try {
-        let reviewsRes;
-        try {
-           reviewsRes = await this.fetchAPI(`/api/reviews/${productId}`);
-        } catch(e) {
-           reviewsRes = await this.fetchAPI(`http://127.0.0.1:3001/api/reviews/${productId}`);
-        }
-        reviews = await reviewsRes.json();
-      } catch(e) { console.warn('Reviews fetch failed, continuing with empty list'); }
-
-      const benefits = (product.keyBenefits ? (typeof product.keyBenefits === 'string' ? JSON.parse(product.keyBenefits) : product.keyBenefits) : []).slice(0, 4);
-
+      // 1. RESILIENCE: Use initial data from card if available for instant load
+      let product = initialData;
+      
+      // 2. Prepare Overlay immediately for animation
       const overlay = document.createElement('div');
       overlay.className = 'fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4 md:p-8 animate-fade-in';
-      overlay.innerHTML = `
-        <div class="bg-surface w-full max-w-6xl rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col md:flex-row max-h-[95vh] animate-scale-up border border-white/10">
-          <button class="absolute top-8 right-8 z-50 text-on-surface/40 hover:text-on-surface bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all" id="close-quickview">
-            <span class="material-symbols-outlined text-3xl">close</span>
-          </button>
-          
-          <!-- Image Section -->
-          <div class="w-full md:w-1/2 bg-surface-variant/10 p-12 flex items-center justify-center relative group min-h-[400px]">
-            <div class="premium-glow-bg absolute inset-0 opacity-20 transition-opacity duration-1000"></div>
-            <img src="${product.image}" alt="${product.name}" class="w-full h-full object-contain relative z-10 floating-image drop-shadow-2xl">
-          </div>
-          
-          <!-- Info Section -->
-          <div class="w-full md:w-1/2 p-12 overflow-y-auto detail-scrollbar bg-surface/50 backdrop-blur-md">
-            <div class="mb-10">
-              <div class="flex items-center gap-3 mb-4">
-                <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary text-white">${product.badge || 'Elite'}</span>
-                <div class="flex items-center gap-1 text-primary">
-                   <span class="material-symbols-outlined text-lg fill-primary">star</span>
-                   <span class="font-bold text-sm">${product.ratingValue || 4.9} / 5</span>
+      
+      const renderModal = (productData, reviewsData = []) => {
+        const benefits = (productData.keyBenefits ? (typeof productData.keyBenefits === 'string' ? JSON.parse(productData.keyBenefits) : productData.keyBenefits) : []).slice(0, 4);
+        
+        const searchTerms = `${productData.category || 'Product'},${productData.name || ''}`.replace(/[^a-zA-Z0-9,]/g, '').toLowerCase();
+        const fallback = `https://loremflickr.com/600/600/${searchTerms}?lock=${productData.id || 1}`;
+
+        overlay.innerHTML = `
+          <div class="bg-surface w-full max-w-6xl rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col md:flex-row max-h-[95vh] animate-scale-up border border-white/10">
+            <button class="absolute top-8 right-8 z-50 text-on-surface/40 hover:text-on-surface bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all" id="close-quickview">
+              <span class="material-symbols-outlined text-3xl">close</span>
+            </button>
+            
+            <!-- Image Section -->
+            <div class="w-full md:w-1/2 bg-surface-variant/10 p-12 flex items-center justify-center relative group min-h-[400px]">
+              <div class="premium-glow-bg absolute inset-0 opacity-20 transition-opacity duration-1000"></div>
+              <img src="${productData.image}" alt="${productData.name}" class="w-full h-full object-contain relative z-10 floating-image drop-shadow-2xl" onerror="this.src='${fallback}';this.onerror=null;">
+            </div>
+            
+            <!-- Info Section -->
+            <div class="w-full md:w-1/2 p-12 overflow-y-auto detail-scrollbar bg-surface/50 backdrop-blur-md">
+              <div class="mb-10">
+                <div class="flex items-center gap-3 mb-4">
+                  <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary text-white">${productData.badge || 'Elite'}</span>
+                  <div class="flex items-center gap-1 text-primary">
+                     <span class="material-symbols-outlined text-lg fill-primary">star</span>
+                     <span class="font-bold text-sm">${productData.ratingValue || 4.9} / 5</span>
+                  </div>
                 </div>
-              </div>
-              <h2 class="text-4xl md:text-5xl font-headline italic text-on-surface mb-4 leading-tight">${product.name}</h2>
-              <p class="text-lg text-on-surface-variant font-body opacity-80 leading-relaxed">${product.shortBenefit}</p>
-            </div>
-            
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-              ${benefits.map(b => `
-                <div class="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-                  <span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1">verified</span>
-                  <span class="text-xs font-bold text-on-surface opacity-80 uppercase tracking-wide text-left">${b}</span>
-                </div>
-              `).join('')}
-            </div>
-            
-            <!-- Price & Action -->
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-6 mb-12 p-8 rounded-3xl bg-primary/5 border border-primary/10">
-              <div class="text-center sm:text-left">
-                <p class="text-[10px] uppercase font-black tracking-widest text-primary opacity-60 mb-1">Store Price</p>
-                <span class="text-4xl font-bold text-on-surface">$${product.price ? product.price.toFixed(2) : '39.99'}</span>
-              </div>
-              <a href="${product.affiliateUrl}" target="_blank" class="shimmer-btn flex-grow sm:flex-grow-0 w-full sm:w-auto px-12 py-5 rounded-2xl bg-[#FF9900] text-[#111] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
-                <span class="material-symbols-outlined">shopping_cart</span>
-                Buy on Amazon
-              </a>
-            </div>
-            
-            <!-- Reviews Segment -->
-            <div class="border-t border-outline-variant/10 pt-10">
-              <div class="flex items-center justify-between mb-8">
-                <h3 class="text-2xl font-headline italic">Recent <i>Insights</i></h3>
-                <span class="text-xs font-bold uppercase tracking-widest opacity-40">${reviews.length} Reviews</span>
+                <h2 class="text-4xl md:text-5xl font-headline italic text-on-surface mb-4 leading-tight">${productData.name}</h2>
+                <p class="text-lg text-on-surface-variant font-body opacity-80 leading-relaxed">${productData.shortBenefit || ''}</p>
               </div>
               
-              <div class="space-y-6">
-                ${reviews.length > 0 ? reviews.map(r => `
-                  <div class="p-6 rounded-3xl bg-white/5 border border-white/10 hover:border-primary/20 transition-all group/rev">
-                    <div class="flex justify-between items-center mb-4">
-                      <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-black text-primary">${r.userName.charAt(0)}</div>
-                        <span class="text-xs font-black uppercase tracking-wider text-on-surface">${r.userName}</span>
-                        ${r.isVerified ? `<span class="material-symbols-outlined text-[14px] text-primary" style="font-variation-settings: 'FILL' 1">verified</span>` : ''}
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+                ${benefits.map(b => `
+                  <div class="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                    <span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1">verified</span>
+                    <span class="text-xs font-bold text-on-surface opacity-80 uppercase tracking-wide text-left">${b}</span>
+                  </div>
+                `).join('')}
+              </div>
+              
+              <!-- Price & Action -->
+              <div class="flex flex-col sm:flex-row items-center justify-between gap-6 mb-12 p-8 rounded-3xl bg-primary/5 border border-primary/10">
+                <div class="text-center sm:text-left">
+                  <p class="text-[10px] uppercase font-black tracking-widest text-primary opacity-60 mb-1">Store Price</p>
+                  <span class="text-4xl font-bold text-on-surface">$${productData.price ? (typeof productData.price === 'number' ? productData.price.toFixed(2) : productData.price) : '39.99'}</span>
+                </div>
+                <a href="${productData.affiliateUrl}" target="_blank" class="shimmer-btn flex-grow sm:flex-grow-0 w-full sm:w-auto px-12 py-5 rounded-2xl bg-[#FF9900] text-[#111] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
+                  <span class="material-symbols-outlined">shopping_cart</span>
+                  Buy on Amazon
+                </a>
+              </div>
+              
+              <!-- Reviews Segment -->
+              <div class="border-t border-outline-variant/10 pt-10">
+                <div class="flex items-center justify-between mb-8">
+                  <h3 class="text-2xl font-headline italic">Recent <i>Insights</i></h3>
+                  <span class="text-xs font-bold uppercase tracking-widest opacity-40">${reviewsData.length} Reviews</span>
+                </div>
+                
+                <div class="space-y-6">
+                  ${reviewsData.length > 0 ? reviewsData.map(r => `
+                    <div class="p-6 rounded-3xl bg-white/5 border border-white/10 hover:border-primary/20 transition-all group/rev">
+                      <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-black text-primary">${r.userName.charAt(0)}</div>
+                          <span class="text-xs font-black uppercase tracking-wider text-on-surface">${r.userName}</span>
+                          ${r.isVerified ? `<span class="material-symbols-outlined text-[14px] text-primary" style="font-variation-settings: 'FILL' 1">verified</span>` : ''}
+                        </div>
+                        <div class="flex text-primary opacity-60">
+                          ${Array(r.rating || 5).fill('<span class="material-symbols-outlined text-[10px] fill-primary">star</span>').join('')}
+                        </div>
                       </div>
-                      <div class="flex text-primary opacity-60">
-                        ${Array(r.rating).fill('<span class="material-symbols-outlined text-[10px] fill-primary">star</span>').join('')}
-                      </div>
+                      <p class="text-sm font-body italic text-on-surface-variant opacity-80 leading-relaxed group-hover/rev:opacity-100 transition-opacity">"${r.comment}"</p>
                     </div>
-                    <p class="text-sm font-body italic text-on-surface-variant opacity-80 leading-relaxed group-hover/rev:opacity-100 transition-opacity">"${r.comment}"</p>
-                  </div>
-                `).join('') : `
-                  <div class="py-12 flex flex-col items-center justify-center text-center opacity-50">
-                    <span class="material-symbols-outlined text-4xl mb-4 text-primary/30">rate_review</span>
-                    <p class="text-base font-headline italic">No reviews yet.</p>
-                    <p class="text-sm mt-2 opacity-60">Be the first to share your experience with this product!</p>
-                  </div>
-                `}
+                  `).join('') : `
+                    <div class="py-12 flex flex-col items-center justify-center text-center opacity-50">
+                      <span class="material-symbols-outlined text-4xl mb-4 text-primary/30">rate_review</span>
+                      <p class="text-base font-headline italic">No reviews yet.</p>
+                      <p class="text-sm mt-2 opacity-60">Be the first to share your experience with this product!</p>
+                    </div>
+                  `}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      `;
+        `;
+        
+        const close = () => { overlay.remove(); this.unlockScroll(); };
+        overlay.querySelector('#close-quickview').onclick = close;
+        overlay.onclick = (e) => { if (e.target.classList.contains('fixed')) close(); };
+      };
 
-      document.body.appendChild(overlay);
-      this.lockScroll();
+      // Initial Render if we have data
+      if (product) {
+        renderModal(product);
+        document.body.appendChild(overlay);
+        this.lockScroll();
+      }
 
-      const close = () => { overlay.remove(); this.unlockScroll(); };
-      overlay.querySelector('#close-quickview').onclick = close;
-      overlay.onclick = (e) => { if (e.target === overlay) close(); };
+      // Fetch Full Data (Hydration)
+      try {
+        let response;
+        try {
+          response = await this.fetchAPI(`/api/products/${productId}`);
+        } catch (err) {
+          response = await this.fetchAPI(`http://127.0.0.1:3001/api/products/${productId}`);
+        }
 
+        const freshProduct = await response.json();
+        
+        let reviews = [];
+        try {
+          let reviewsRes;
+          try {
+            reviewsRes = await this.fetchAPI(`/api/reviews/${productId}`);
+          } catch(e) {
+            reviewsRes = await this.fetchAPI(`http://127.0.0.1:3001/api/reviews/${productId}`);
+          }
+          reviews = await reviewsRes.json();
+        } catch(e) {}
+
+        // Render with full data
+        if (!product) {
+          document.body.appendChild(overlay);
+          this.lockScroll();
+        }
+        renderModal(freshProduct, reviews);
+
+      } catch (err) {
+        console.warn('API Hydration failed, using card data only.');
+      }
     } catch (err) {
       console.error('Quick View Error:', err);
     }

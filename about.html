@@ -17,7 +17,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.19/bundled/lenis.min.js"></script>
     <script type="module" src="/src/main.js"></script>
-    <style>body { opacity: 0; transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1); } body.loaded { opacity: 1; }</style>
+    <style>body { opacity: 1; transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1); } body.loaded { opacity: 1; }</style>
 </head>
 <body class="bg-surface text-on-surface">
     <!-- TopNavBar -->
@@ -130,34 +130,49 @@
         </section>
 
         <!-- Our Approach -->
-        <section class="py-32 bg-primary-container/10">
-            <div class="container mx-auto px-8 max-w-screen-xl text-center">
-                <div class="max-w-3xl mx-auto reveal-up">
-                    <h2 class="text-5xl font-headline mb-12 italic">Our Modern <i>Approach</i></h2>
-                    <p class="text-xl text-on-surface-variant font-body mb-16 leading-relaxed">We combine technology, global sourcing, and customer insights to create a modern shopping experience.</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                        <div class="approach-card" data-watermark="AU">
-                            <span class="material-symbols-outlined text-primary text-4xl mb-4">settings_auto</span>
-                            <h4 class="font-bold text-xs uppercase tracking-[0.2em] mb-4 text-primary">Efficiency</h4>
-                            <p class="text-sm font-body text-on-surface-variant font-bold uppercase tracking-widest leading-loose">Automated Global <br> Sourcing</p>
-                        </div>
-                        <div class="approach-card" data-watermark="SR">
-                            <span class="material-symbols-outlined text-primary text-4xl mb-4">diversity_3</span>
-                            <h4 class="font-bold text-xs uppercase tracking-[0.2em] mb-4 text-primary">Suppliers</h4>
-                            <p class="text-sm font-body text-on-surface-variant font-bold uppercase tracking-widest leading-loose">Strategic Portflio <br> Networks</p>
-                        </div>
-                        <div class="approach-card" data-watermark="DD">
-                            <span class="material-symbols-outlined text-primary text-4xl mb-4">query_stats</span>
-                            <h4 class="font-bold text-xs uppercase tracking-[0.2em] mb-4 text-primary">Data</h4>
-                            <p class="text-sm font-body text-on-surface-variant font-bold uppercase tracking-widest leading-loose">Precision Market <br> Analytics</p>
-                        </div>
-                        <div class="approach-card" data-watermark="SC">
-                            <span class="material-symbols-outlined text-primary text-4xl mb-4">scaling</span>
-                            <h4 class="font-bold text-xs uppercase tracking-[0.2em] mb-4 text-primary">Scaling</h4>
-                            <p class="text-sm font-body text-on-surface-variant font-bold uppercase tracking-widest leading-loose">Boutique Global <br> Logistics</p>
-                        </div>
+        <section class="py-32 bg-surface-container-low relative overflow-hidden">
+            <div class="container mx-auto px-8 max-w-screen-xl text-center relative z-10">
+                <div class="max-w-3xl mx-auto reveal-up mb-20">
+                    <span class="text-primary font-bold tracking-[0.4em] uppercase text-xs mb-4 block">Future-Ready Model</span>
+                    <h2 class="text-6xl font-headline mb-8 italic">Our Modern <i>Approach</i></h2>
+                    <p class="text-xl text-on-surface-variant font-body leading-relaxed opacity-70">We combine technology, global sourcing, and customer insights to create a modern shopping experience.</p>
+                </div>
+                
+                <div class="approach-grid">
+                    <!-- Efficiency -->
+                    <div class="approach-card reveal-up" data-watermark="AU" style="transition-delay: 100ms">
+                        <span class="material-symbols-outlined approach-icon">settings_auto</span>
+                        <h4 class="font-bold text-[10px] uppercase tracking-[0.3em] mb-6 text-primary">Efficiency</h4>
+                        <p class="text-lg font-headline text-on-surface font-bold uppercase tracking-widest leading-tight">Automated Global <br> Sourcing</p>
+                    </div>
+                    
+                    <!-- Suppliers -->
+                    <div class="approach-card reveal-up" data-watermark="SR" style="transition-delay: 200ms">
+                        <span class="material-symbols-outlined approach-icon">diversity_3</span>
+                        <h4 class="font-bold text-[10px] uppercase tracking-[0.3em] mb-6 text-primary">Suppliers</h4>
+                        <p class="text-lg font-headline text-on-surface font-bold uppercase tracking-widest leading-tight">Strategic Portfolio <br> Networks</p>
+                    </div>
+                    
+                    <!-- Data -->
+                    <div class="approach-card reveal-up" data-watermark="DD" style="transition-delay: 300ms">
+                        <span class="material-symbols-outlined approach-icon">query_stats</span>
+                        <h4 class="font-bold text-[10px] uppercase tracking-[0.3em] mb-6 text-primary">Data</h4>
+                        <p class="text-lg font-headline text-on-surface font-bold uppercase tracking-widest leading-tight">Precision Market <br> Analytics</p>
+                    </div>
+                    
+                    <!-- Scaling -->
+                    <div class="approach-card reveal-up" data-watermark="SC" style="transition-delay: 400ms">
+                        <span class="material-symbols-outlined approach-icon">rocket_launch</span>
+                        <h4 class="font-bold text-[10px] uppercase tracking-[0.3em] mb-6 text-primary">Scaling</h4>
+                        <p class="text-lg font-headline text-on-surface font-bold uppercase tracking-widest leading-tight">Boutique Global <br> Logistics</p>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Decorative Background Element -->
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full pointer-events-none opacity-50">
+                <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full"></div>
+                <div class="absolute bottom-0 left-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full"></div>
             </div>
         </section>
     </main>

@@ -6,6 +6,6 @@ export default defineConfig({
   earlyAccess: true,
   schema: path.join(import.meta.dirname, 'prisma', 'schema.prisma'),
   datasource: {
-    url: env('DATABASE_URL'),
+    clientConfig: env('DATABASE_URL'),
   },
 });
