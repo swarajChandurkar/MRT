@@ -1,333 +1,237 @@
 import prisma from './db.js';
+import bcrypt from 'bcryptjs';
 
 async function main() {
-  console.log('🚀 Enriching MRT International with Premium Studio Visuals and Social Proof...');
+  console.log('🚀 Finalizing MRT International Catalog with Verified Affiliate Links & Visuals...');
 
+  // Clean in correct order (foreign key constraints)
   await prisma.review.deleteMany();
+  await prisma.comparisonItem.deleteMany();
+  await prisma.wishlistItem.deleteMany();
+  await prisma.affiliateClick.deleteMany();
   await prisma.product.deleteMany();
+  await prisma.categoryTheme.deleteMany();
+  await prisma.category.deleteMany();
+  await prisma.testimonial.deleteMany();
+  await prisma.user.deleteMany();
 
-  // 1. Categories with accurate slugs
+  // 0. Admin User
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@mrt.com';
+  const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
+  const passwordHash = await bcrypt.hash(adminPass, 10);
+
+  await prisma.user.create({
+    data: {
+      email: adminEmail,
+      passwordHash,
+      name: 'MRT Admin',
+      role: 'ADMIN',
+    }
+  });
+  console.log(`👤 Admin user created: ${adminEmail}`);
+
+  // 1. Categories Migration
   const categories = [
-    { name: 'Home & Kitchen', slug: 'home-kitchen', icon: 'home', sortOrder: 1 },
-    { name: 'Health & Wellness', slug: 'health-wellness', icon: 'health_and_safety', sortOrder: 2 },
-    { name: 'Beauty & Personal Care', slug: 'beauty-personal-care', icon: 'face', sortOrder: 3 },
-    { name: 'Pet Supplies', slug: 'pet-supplies', icon: 'pets', sortOrder: 4 },
-    { name: 'Baby & Kids Essentials', slug: 'baby-kids-essentials', icon: 'child_care', sortOrder: 5 },
-    { name: 'Electronics & Accessories', slug: 'electronics-accessories', icon: 'devices', sortOrder: 6 },
-    { name: 'Sports & Fitness', slug: 'sports-fitness', icon: 'fitness_center', sortOrder: 7 },
+    { name: 'Home & Kitchen', slug: 'home-kitchen', image: '/assets/categories/home-kitchen.png', sortOrder: 1 },
+    { name: 'Health & Wellness', slug: 'health-wellness', image: '/assets/categories/health-wellness.png', sortOrder: 2 },
+    { name: 'Beauty & Personal Care', slug: 'beauty-personal-care', image: '/assets/categories/beauty-skincare.png', sortOrder: 3 },
+    { name: 'Pet Supplies', slug: 'pet-supplies', image: '/assets/categories/pet-supplies.png', sortOrder: 4 },
+    { name: 'Baby & Kids Essentials', slug: 'baby-kids-essentials', image: '/assets/categories/baby-products.png', sortOrder: 5 },
+    { name: 'Electronics & Accessories', slug: 'electronics-accessories', image: '/assets/categories/electronics.png', sortOrder: 6 },
+    { name: 'Sports & Fitness', slug: 'sports-fitness', image: '/assets/categories/sports-fitness.png', sortOrder: 7 },
   ];
 
   const catMap = {};
   for (const cat of categories) {
-    const created = await prisma.category.upsert({
-      where: { slug: cat.slug },
-      update: cat,
-      create: cat,
-    });
+    const created = await prisma.category.create({ data: cat });
+    catMap[cat.name] = created.id;
     catMap[cat.slug] = created.id;
   }
+  console.log(`📁 ${categories.length} categories created`);
 
-  // 2. High-Fidelity Product Catalog (Studio Style) - All Categories Covered
-  const products = [
-    {
-      name: 'Premium Magnetic Whisk',
-      slug: 'premium-magnetic-whisk',
-      description: 'Professional grade kitchen whisk with magnetic stabilizing technology.',
-      price: 24.99,
-      image: '/assets/products/premium-whisk.png',
-      badge: 'Best Seller',
-      shortBenefit: 'Effortless mixing with magnetic balance.',
-      isActive: true,
-      sortOrder: 1,
-      ratingValue: 4.9,
-      categorySlug: 'home-kitchen',
-      tags: JSON.stringify(["kitchen", "premium", "magnetic"]),
-      keyBenefits: JSON.stringify(["Magnetic Balance", "High Grade Steel", "Ergonomic Grip"])
-    },
-    {
-      name: 'Orthopedic Back Support Belt',
-      slug: 'orthopedic-back-support-belt',
-      description: 'Advanced orthopedic support for lower back health and posture correction.',
-      price: 49.99,
-      image: '/assets/products/back-support.png',
-      badge: 'Expert Choice',
-      shortBenefit: 'Medical-grade posture alignment.',
-      isActive: true,
-      sortOrder: 2,
-      ratingValue: 4.8,
-      categorySlug: 'health-wellness',
-      tags: JSON.stringify(["health", "posture", "orthopedic"]),
-      keyBenefits: JSON.stringify(["Posture Correction", "Breathable Mesh", "Adjustable Tension"])
-    },
-    {
-      name: 'Ultra-Precision Digital Scale',
-      slug: 'ultra-precision-digital-scale',
-      description: 'High-precision digital scale with laboratory grade sensors.',
-      price: 34.99,
-      image: '/assets/products/digital-scale.png',
-      badge: 'Top Rated',
-      shortBenefit: 'Accuracy down to 0.01g.',
-      isActive: true,
-      sortOrder: 3,
-      ratingValue: 4.8,
-      categorySlug: 'home-kitchen',
-      tags: JSON.stringify(["kitchen", "precision", "digital"]),
-      keyBenefits: JSON.stringify(["0.01g Precision", "Backlit LCD", "Tempered Glass"])
-    },
-    {
-      name: 'Luxe Radiance Facial Serum',
-      slug: 'luxe-radiance-facial-serum',
-      description: 'Premium hyaluronic acid and vitamin C complex for youthful skin.',
-      price: 89.99,
-      image: '/assets/products/facial-serum.png',
-      badge: 'Elite Beauty',
-      shortBenefit: 'Instant hydration and glow.',
-      isActive: true,
-      sortOrder: 4,
-      ratingValue: 4.9,
-      categorySlug: 'beauty-personal-care',
-      tags: JSON.stringify(["beauty", "skincare", "luxury"]),
-      keyBenefits: JSON.stringify(["Hyaluronic Complex", "Glow Boost", "Non-Greasy"])
-    },
-    {
-      name: 'Sonic Pulse Electric Toothbrush',
-      slug: 'sonic-pulse-electric-toothbrush',
-      description: 'High-frequency vibration toothbrush for professional dental cleaning.',
-      price: 129.99,
-      image: '/assets/products/electric-toothbrush.png',
-      badge: 'Award Winner',
-      shortBenefit: '40,000 pulses per minute.',
-      isActive: true,
-      sortOrder: 5,
-      ratingValue: 4.8,
-      categorySlug: 'beauty-personal-care',
-      tags: JSON.stringify(["health", "tech", "personal-care"]),
-      keyBenefits: JSON.stringify(["Sonic Tech", "UV Sanitizer", "30-Day Battery"])
-    },
-    {
-      name: 'Smart Ergonomic Office Chair',
-      slug: 'smart-ergonomic-office-chair',
-      description: 'Dynamic lumbar support and responsive mesh for all-day comfort.',
-      price: 399.99,
-      image: '/assets/products/office-chair.png',
-      badge: 'Pro Setup',
-      shortBenefit: 'Ultimate lumbar support system.',
-      isActive: true,
-      sortOrder: 6,
-      ratingValue: 4.7,
-      categorySlug: 'electronics-accessories',
-      tags: JSON.stringify(["office", "furniture", "ergonomic"]),
-      keyBenefits: JSON.stringify(["Dynamic Lumbar", "4D Armrests", "High Breathability"])
-    },
-    {
-      name: 'Crystal Clear Glass Kettle',
-      slug: 'crystal-clear-glass-kettle',
-      description: 'Borosilicate glass electric kettle with beautiful LED illumination.',
-      price: 59.99,
-      image: '/assets/products/glass-kettle.png',
-      badge: 'Modern Kitchen',
-      shortBenefit: 'Rapid boil with LED glow.',
-      isActive: true,
-      sortOrder: 7,
-      ratingValue: 4.8,
-      categorySlug: 'home-kitchen',
-      tags: JSON.stringify(["kitchen", "modern", "electric"]),
-      keyBenefits: JSON.stringify(["Borosilicate Glass", "Rapid Boil", "Auto Shut-off"])
-    },
-    {
-      name: 'Nano-Filtration Air Purifier',
-      slug: 'nano-filtration-air-purifier',
-      description: 'Medical-grade H13 HEPA filtration for pure, clean air.',
-      price: 249.99,
-      image: '/assets/products/air-purifier.png',
-      badge: 'Fresh Air',
-      shortBenefit: 'Eliminates 99.9% of particles.',
-      isActive: true,
-      sortOrder: 8,
-      ratingValue: 4.9,
-      categorySlug: 'health-wellness',
-      tags: JSON.stringify(["health", "home", "purity"]),
-      keyBenefits: JSON.stringify(["H13 HEPA", "Whisper Quiet", "Smart Monitoring"])
-    },
-    {
-      name: 'Deep Tissue Muscle Massager',
-      slug: 'deep-tissue-muscle-massager',
-      description: 'Professional percussive therapy device for rapid recovery.',
-      price: 199.99,
-      image: '/assets/products/muscle-massager.png',
-      badge: 'Elite Athlete',
-      shortBenefit: 'Accelerates muscle recovery.',
-      isActive: true,
-      sortOrder: 9,
-      ratingValue: 4.8,
-      categorySlug: 'sports-fitness',
-      tags: JSON.stringify(["fitness", "recovery", "pro"]),
-      keyBenefits: JSON.stringify(["3000 PPM", "Quiet Glide", "8 Attachments"])
-    },
-    {
-      name: 'Artisan Copper Cookware Set',
-      slug: 'artisan-copper-cookware-set',
-      description: 'Hand-crafted copper pots and pans for superior heat distribution.',
-      price: 599.99,
-      image: '/assets/products/cookware-set.png',
-      badge: 'Chef Grade',
-      shortBenefit: 'Superior heating, timeless design.',
-      isActive: true,
-      sortOrder: 10,
-      ratingValue: 4.9,
-      categorySlug: 'home-kitchen',
-      tags: JSON.stringify(["kitchen", "artisan", "copper"]),
-      keyBenefits: JSON.stringify(["Pure Copper", "Steel Handles", "Lifetime Durability"])
-    },
-    {
-      name: 'Smart Induction Milk Frother',
-      slug: 'smart-induction-milk-frother',
-      description: 'Induction heating frother for coffee-shop quality foam at home.',
-      price: 79.99,
-      image: '/assets/products/milk-frother.png',
-      badge: 'Barista Choice',
-      shortBenefit: 'Perfect foam in 60 seconds.',
-      isActive: true,
-      sortOrder: 11,
-      ratingValue: 4.8,
-      categorySlug: 'home-kitchen',
-      tags: JSON.stringify(["kitchen", "coffee", "luxury"]),
-      keyBenefits: JSON.stringify(["Induction Heat", "Dishwasher Safe", "3 Foam Modes"])
-    },
-    {
-      name: 'Professional Grade Yoga Mat',
-      slug: 'professional-grade-yoga-mat',
-      description: 'High-density material and non-slip surface for advanced practice.',
-      price: 89.99,
-      image: '/assets/products/yoga-mat.png',
-      badge: 'Eco-Friendly',
-      shortBenefit: 'Superior grip and cushioning.',
-      isActive: true,
-      sortOrder: 12,
-      ratingValue: 4.9,
-      categorySlug: 'sports-fitness',
-      tags: JSON.stringify(["fitness", "yoga", "wellness"]),
-      keyBenefits: JSON.stringify(["Non-Slip Grip", "6mm Cushion", "Toxic-Free"])
-    },
-    {
-      name: 'Adjustable Weighted Vest',
-      slug: 'adjustable-weighted-vest',
-      description: 'Ergonomic fitness vest with adjustable weights for strength training.',
-      price: 149.99,
-      image: '/assets/products/weighted-vest.png',
-      badge: 'Pro Training',
-      shortBenefit: 'Maximize workout intensity.',
-      isActive: true,
-      sortOrder: 13,
-      ratingValue: 4.7,
-      categorySlug: 'sports-fitness',
-      tags: JSON.stringify(["fitness", "strength", "gear"]),
-      keyBenefits: JSON.stringify(["Breathable Gear", "Even Weight Dist", "Adjustable Fit"])
-    },
-    {
-      name: 'Portable Espresso Machine',
-      slug: 'portable-espresso-machine',
-      description: 'Compact manual espresso maker for premium coffee anywhere.',
-      price: 119.99,
-      image: '/assets/products/espresso-machine.png',
-      badge: 'Travel Gear',
-      shortBenefit: 'Espresso anywhere, any time.',
-      isActive: true,
-      sortOrder: 14,
-      ratingValue: 4.8,
-      categorySlug: 'home-kitchen',
-      tags: JSON.stringify(["kitchen", "travel", "coffee"]),
-      keyBenefits: JSON.stringify(["18 Bar Pressure", "Lightweight", "Manual Tech"])
-    },
-    {
-      name: 'High-Fidelity Noise Cancelling Headphones',
-      slug: 'high-fidelity-noise-cancelling-headphones',
-      description: 'Ultimate audio experience with advanced active noise cancellation.',
-      price: 349.99,
-      image: '/assets/products/noise-cancelling-headphones.png',
-      badge: 'Premium Audio',
-      shortBenefit: 'Total immersion, zero noise.',
-      isActive: true,
-      sortOrder: 15,
-      ratingValue: 4.9,
-      categorySlug: 'electronics-accessories',
-      tags: JSON.stringify(["tech", "audio", "premium"]),
-      keyBenefits: JSON.stringify(["Adaptive ANC", "40H Battery", "Studio Sound"])
-    },
-    {
-      name: 'Organic Bamboo Baby Swaddle',
-      slug: 'organic-bamboo-baby-swaddle',
-      description: 'Ultra-soft, breathable bamboo fiber swaddle for delicate skin.',
-      price: 32.99,
-      image: '/assets/products/baby-swaddle.png',
-      badge: 'Pure Choice',
-      shortBenefit: 'Cloud-soft comfort for babies.',
-      isActive: true,
-      sortOrder: 16,
-      ratingValue: 5.0,
-      categorySlug: 'baby-kids-essentials',
-      tags: JSON.stringify(["baby", "organic", "bamboo"]),
-      keyBenefits: JSON.stringify(["100% Organic", "Breathable", "Extra Large"])
-    },
-    {
-      name: 'Smart GPS Pet Tracker',
-      slug: 'smart-gps-pet-tracker',
-      description: 'Real-time location tracking and activity monitor for your pets.',
-      price: 129.99,
-      image: '/assets/products/pet-tracker.png',
-      badge: 'Safe Pet',
-      shortBenefit: 'Always know where they are.',
-      isActive: true,
-      sortOrder: 17,
-      ratingValue: 4.9,
-      categorySlug: 'pet-supplies',
-      tags: JSON.stringify(["pets", "tech", "gps"]),
-      keyBenefits: JSON.stringify(["Real-time GPS", "Waterproof", "Activity Log"])
-    }
+  // 1b. Themes
+  const themes = [
+    { slug: 'home-kitchen', primary: '#914d00', secondary: '#f28c28', title: 'Modern Kitchen', subtitle: 'Culinary brilliance and lifestyle essentials', seoTitle: 'Elite Best Home & Kitchen Collection', seoIntro: 'Curated selection of premium kitchenware and home essentials.' },
+    { slug: 'health-wellness', primary: '#006a6a', secondary: '#00cfcf', title: 'Personal Vitality', subtitle: 'Advanced recovery and wellness curations', seoTitle: 'High-Performance Health & Wellness Gear', seoIntro: 'Advanced recovery tools and wellness essentials.' },
+    { slug: 'beauty-personal-care', primary: '#701b2f', secondary: '#ffb2bd', title: 'Artisanal Beauty', subtitle: 'Pristine formulas for radiant maintenance', seoTitle: 'Premium Beauty & Skincare Essentials', seoIntro: 'Discover professional-grade skincare and beauty tools.' },
+    { slug: 'pet-supplies', primary: '#3a6a00', secondary: '#8ce33a', title: 'Pet Curations', subtitle: 'Sophisticated gear for companions', seoTitle: 'World-Class Pet Supplies & Tracking', seoIntro: 'Precision tracking and professional grooming gear.' },
+    { slug: 'baby-kids-essentials', primary: '#004a77', secondary: '#7fbaff', title: 'Baby Essentials', subtitle: 'Nordic design for modern parents', seoTitle: 'Safe & Sustainable Baby Essentials', seoIntro: 'Ergonomic designs and safety-first grooming tools.' },
+    { slug: 'electronics-accessories', primary: '#1f1b17', secondary: '#bf8f00', title: 'Tech Companions', subtitle: 'Performance-driven digital gear', seoTitle: 'Elite Tech Accessories & Charging Hubs', seoIntro: 'High-performance digital essentials.' },
+    { slug: 'sports-fitness', primary: '#006e2a', secondary: '#55f985', title: 'Peak Performance', subtitle: 'Minimalist gear for elite training', seoTitle: 'Professional-Grade Sports & Fitness Gear', seoIntro: 'Minimalist equipment and heavy-duty support gear.' },
   ];
 
-  const reviewTemplates = [
-    { userName: 'Sarah J.', rating: 5, comment: 'Absolutely game changing! The quality exceeds the price point significantly.' },
-    { userName: 'Michael R.', rating: 4, comment: 'Solid build and performs exactly as described. Highly recommended for daily use.' },
-    { userName: 'Elena V.', rating: 5, comment: 'Beautiful aesthetic and functional excellence. MRT hit it out of the park with this one.' },
-    { userName: 'David K.', rating: 5, comment: 'If you are on the fence, just buy it. The attention to detail is premium level.' },
-    { userName: 'Amina L.', rating: 4, comment: 'Very happy with the purchase. Packaged perfectly and shipping was fast.' }
-  ];
-
-  for (const prod of products) {
-    const createdProduct = await prisma.product.upsert({
-      where: { slug: prod.slug },
-      update: { 
-        ...prod, 
-        categoryId: catMap[prod.categorySlug], 
-        categorySlug: undefined 
-      },
-      create: { 
-        ...prod, 
-        categoryId: catMap[prod.categorySlug], 
-        categorySlug: undefined 
-      },
+  for (const theme of themes) {
+    const { slug, ...themeData } = theme;
+    await prisma.categoryTheme.create({
+      data: { ...themeData, categoryId: catMap[slug] }
     });
-
-    console.log(`✨ Synced: ${prod.name}`);
-
-    // Create 3 random reviews for each product
-    const shuffled = [...reviewTemplates].sort(() => 0.5 - Math.random());
-    const selectedReviews = shuffled.slice(0, 3);
-
-    for (const rev of selectedReviews) {
-      await prisma.review.create({
-        data: {
-          ...rev,
-          productId: createdProduct.id,
-          isVerified: true
-        }
-      });
-    }
-    console.log(`   └─ Added 3 Premium Reviews`);
   }
 
-  console.log('🌟 Seeding Complete. Store populated with 100% Category Coverage and Studio Visuals.');
+  // 2. FINAL PRODUCT CATALOG (From User Request)
+  const finalProducts = [
+    // HOME & KITCHEN
+    { cat: 'Home & Kitchen', badge: 'Top Picks', name: 'Vegetable Chopper', url: 'https://amzn.to/4mgjKOK' },
+    { cat: 'Home & Kitchen', badge: 'Top Picks', name: 'Electric Spin Scrubber', url: 'https://amzn.to/4vayOS5' },
+    { cat: 'Home & Kitchen', badge: 'Top Picks', name: 'Vacuum Storage Bags', url: 'https://amzn.to/3NQUaDg' },
+    { cat: 'Home & Kitchen', badge: 'Top Picks', name: 'Air Fryer Accessories Set', url: 'https://amzn.to/47J01RH' },
+    { cat: 'Home & Kitchen', badge: 'Trending Now', name: 'Oil Spray Bottle', url: 'https://amzn.to/3OmAkQo' },
+    { cat: 'Home & Kitchen', badge: 'Trending Now', name: 'Smart Plug', url: 'https://amzn.to/3PU7kzZ' },
+    { cat: 'Home & Kitchen', badge: 'Trending Now', name: 'LED Motion Sensor Lights', url: 'https://amzn.to/41hGtjS' },
+    { cat: 'Home & Kitchen', badge: 'Trending Now', name: 'Microfiber Cleaning Cloth Pack', url: 'https://amzn.to/4cdP3Fi' },
+    { cat: 'Home & Kitchen', badge: "Editor's Choice", name: 'Digital Kitchen Scale', url: 'https://amzn.to/3PSpaDq' },
+    { cat: 'Home & Kitchen', badge: "Editor's Choice", name: 'Under Sink Organizer', url: 'https://amzn.to/3NQUTEu' },
+
+    // BEAUTY & PERSONAL CARE
+    { cat: 'Beauty & Personal Care', badge: 'Top Picks', name: 'Ice Face Roller', url: 'https://amzn.to/4sj2ytg' },
+    { cat: 'Beauty & Personal Care', badge: 'Top Picks', name: 'Facial Cleansing Brush', url: 'https://amzn.to/4dwEOOH' },
+    { cat: 'Beauty & Personal Care', badge: 'Top Picks', name: 'Hair Straightener Brush', url: 'https://amzn.to/48jgyvP' },
+    { cat: 'Beauty & Personal Care', badge: 'Top Picks', name: 'LED Makeup Mirror', url: 'https://amzn.to/4vfzipZ' },
+    { cat: 'Beauty & Personal Care', badge: 'Trending Now', name: 'Heatless Hair Curlers', url: 'https://amzn.to/4migCSr' },
+    { cat: 'Beauty & Personal Care', badge: 'Trending Now', name: 'Blackhead Remover Vacuum', url: 'https://amzn.to/4ve7ylD' },
+    { cat: 'Beauty & Personal Care', badge: 'Trending Now', name: 'Electric Toothbrush', url: 'https://amzn.to/4vaA3AJ' },
+    { cat: 'Beauty & Personal Care', badge: "Editor's Choice", name: 'Electric Eyebrow Trimmer', url: 'https://amzn.to/4seAiYR' },
+    { cat: 'Beauty & Personal Care', badge: "Editor's Choice", name: 'Makeup Brush Set', url: 'https://amzn.to/4sW28dh' },
+    { cat: 'Beauty & Personal Care', badge: "Editor's Choice", name: 'Cosmetic Organizer', url: 'https://amzn.to/4tytGFH' },
+
+    // HEALTH & WELLNESS
+    { cat: 'Health & Wellness', badge: 'Top Picks', name: 'Neck & Shoulder Massager', url: 'https://amzn.to/4bUeFbj' },
+    { cat: 'Health & Wellness', badge: 'Top Picks', name: 'Posture Corrector', url: 'https://amzn.to/4mfhIhB' },
+    { cat: 'Health & Wellness', badge: 'Top Picks', name: 'Massage Gun', url: 'https://amzn.to/41iIMTD' },
+    { cat: 'Health & Wellness', badge: 'Top Picks', name: 'Memory Foam Pillow', url: 'https://amzn.to/4sP2liu' },
+    { cat: 'Health & Wellness', badge: 'Trending Now', name: 'Aromatherapy Diffuser', url: 'https://amzn.to/47JWi6m' },
+    { cat: 'Health & Wellness', badge: 'Trending Now', name: 'Foam Roller', url: 'https://amzn.to/4vee8bR' },
+    { cat: 'Health & Wellness', badge: 'Trending Now', name: 'Weighted Blanket', url: 'https://amzn.to/4cuuq8Y' },
+    { cat: 'Health & Wellness', badge: "Editor's Choice", name: 'Eye Massager', url: 'https://amzn.to/4sjeTgW' },
+    { cat: 'Health & Wellness', badge: "Editor's Choice", name: 'White Noise Machine', url: 'https://amzn.to/3PWkxbo' },
+    { cat: 'Health & Wellness', badge: "Editor's Choice", name: 'Lumbar Support Cushion', url: 'https://amzn.to/4vdRQXB' },
+
+    // PET SUPPLIES
+    { cat: 'Pet Supplies', badge: 'Top Picks', name: 'Pet Hair Remover Roller', url: 'https://amzn.to/4sCm3NL' },
+    { cat: 'Pet Supplies', badge: 'Top Picks', name: 'Self-Cleaning Grooming Brush', url: 'https://amzn.to/4mfdKWt' },
+    { cat: 'Pet Supplies', badge: 'Top Picks', name: 'Automatic Pet Feeder', url: 'https://amzn.to/41iJvEl' },
+    { cat: 'Pet Supplies', badge: 'Top Picks', name: 'Pet Water Fountain', url: 'https://amzn.to/3PSASxU' },
+    { cat: 'Pet Supplies', badge: 'Trending Now', name: 'Interactive Dog Toy', url: 'https://amzn.to/4mfmbAR' },
+    { cat: 'Pet Supplies', badge: 'Trending Now', name: 'Cat Laser Toy', url: 'https://amzn.to/47Hm0bJ' },
+    { cat: 'Pet Supplies', badge: 'Trending Now', name: 'Portable Pet Water Bottle', url: 'https://amzn.to/4drRB4S' },
+    { cat: 'Pet Supplies', badge: "Editor's Choice", name: 'Slow Feeder Bowl', url: 'https://amzn.to/4mbNWue' },
+    { cat: 'Pet Supplies', badge: "Editor's Choice", name: 'Pet Nail Clipper', url: 'https://amzn.to/4sRqXHj' },
+    { cat: 'Pet Supplies', badge: "Editor's Choice", name: 'Pet Bed', url: 'https://amzn.to/4soPJh3' },
+
+    // BABY & KIDS
+    { cat: 'Baby & Kids Essentials', badge: 'Top Picks', name: 'Baby Nail Trimmer', url: 'https://amzn.to/4sgYlpK' },
+    { cat: 'Baby & Kids Essentials', badge: 'Top Picks', name: 'Silicone Feeding Set', url: 'https://amzn.to/48z3NNN' },
+    { cat: 'Baby & Kids Essentials', badge: 'Top Picks', name: 'Baby Diaper Bag', url: 'https://amzn.to/3OkGAIp' },
+    { cat: 'Baby & Kids Essentials', badge: 'Top Picks', name: 'Portable Changing Mat', url: 'https://amzn.to/4c8AHWJ' },
+    { cat: 'Baby & Kids Essentials', badge: 'Trending Now', name: 'Cabinet Safety Locks', url: 'https://amzn.to/4t1fyF2' },
+    { cat: 'Baby & Kids Essentials', badge: 'Trending Now', name: 'Baby Bottle Warmer', url: 'https://amzn.to/4sP3vdQ' },
+    { cat: 'Baby & Kids Essentials', badge: 'Trending Now', name: 'Baby Bath Support', url: 'https://amzn.to/4ve9vOZ' },
+    { cat: 'Baby & Kids Essentials', badge: "Editor's Choice", name: 'Stroller Organizer', url: 'https://amzn.to/4cuvnhy' },
+    { cat: 'Baby & Kids Essentials', badge: "Editor's Choice", name: 'Baby Toy Set', url: 'https://amzn.to/3PTsPkm' },
+    { cat: 'Baby & Kids Essentials', badge: "Editor's Choice", name: 'Baby Grooming Kit', url: 'https://amzn.to/4cbFKFG' },
+
+    // ELECTRONICS
+    { cat: 'Electronics & Accessories', badge: 'Top Picks', name: 'Wireless Earbuds', url: 'https://amzn.to/4ccwbqa' },
+    { cat: 'Electronics & Accessories', badge: 'Top Picks', name: 'Fast Wireless Charger', url: 'https://amzn.to/4dQO28H' },
+    { cat: 'Electronics & Accessories', badge: 'Top Picks', name: 'Power Bank', url: 'https://amzn.to/4tCD5w5' },
+    { cat: 'Electronics & Accessories', badge: 'Top Picks', name: 'Bluetooth Speaker', url: 'https://amzn.to/4mbyWMO' },
+    { cat: 'Electronics & Accessories', badge: 'Trending Now', name: 'Smart LED Strip Lights', url: 'https://amzn.to/41hOMvW' },
+    { cat: 'Electronics & Accessories', badge: 'Trending Now', name: 'Car Phone Mount', url: 'https://amzn.to/4teXqb3' },
+    { cat: 'Electronics & Accessories', badge: 'Trending Now', name: 'Charging Hub', url: 'https://amzn.to/4mkil9Y' },
+    { cat: 'Electronics & Accessories', badge: "Editor's Choice", name: 'Mini Projector', url: 'https://amzn.to/4sgFueI' },
+    { cat: 'Electronics & Accessories', badge: "Editor's Choice", name: 'Laptop Stand', url: 'https://amzn.to/41PFXcP' },
+    { cat: 'Electronics & Accessories', badge: "Editor's Choice", name: 'Phone Stand', url: 'https://amzn.to/47KCkbN' },
+
+    // SPORTS & FITNESS
+    { cat: 'Sports & Fitness', badge: 'Top Picks', name: 'Resistance Bands', url: 'https://amzn.to/4csnjxL' },
+    { cat: 'Sports & Fitness', badge: 'Top Picks', name: 'Massage Gun', url: 'https://amzn.to/4t2EnR8' },
+    { cat: 'Sports & Fitness', badge: 'Top Picks', name: 'Yoga Mat', url: 'https://amzn.to/47KcdSc' },
+    { cat: 'Sports & Fitness', badge: 'Top Picks', name: 'Adjustable Dumbbells', url: 'https://amzn.to/4vggOWa' },
+    { cat: 'Sports & Fitness', badge: 'Trending Now', name: 'Ab Roller', url: 'https://amzn.to/3OpiNHd' },
+    { cat: 'Sports & Fitness', badge: 'Trending Now', name: 'Jump Rope', url: 'https://amzn.to/4bUqYV0' },
+    { cat: 'Sports & Fitness', badge: 'Trending Now', name: 'Foam Roller', url: 'https://amzn.to/3PLBzJp' },
+    { cat: 'Sports & Fitness', badge: "Editor's Choice", name: 'Push-Up Board', url: 'https://amzn.to/4trnFKQ' },
+    { cat: 'Sports & Fitness', badge: "Editor's Choice", name: 'Gym Gloves', url: 'https://amzn.to/4cbGYAM' },
+    { cat: 'Sports & Fitness', badge: "Editor's Choice", name: 'Water Bottle', url: 'https://amzn.to/41MUm9M' }
+  ];
+
+  for (let i = 0; i < finalProducts.length; i++) {
+    const p = finalProducts[i];
+    const slug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    
+    // IMAGE LOGIC: Using specific realistic images for core products, fallback to high-quality themed Unsplash placeholders
+    const specificImages = {
+      'Vegetable Chopper': 'https://images.unsplash.com/photo-1590779033100-9f60705a2f3b?auto=format&fit=crop&w=600&q=80',
+      'Electric Spin Scrubber': 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=600&q=80',
+      'Vacuum Storage Bags': 'https://images.unsplash.com/photo-1595446050682-1c2582845398?auto=format&fit=crop&w=600&q=80',
+      'Air Fryer Accessories Set': 'https://images.unsplash.com/photo-1626071491511-3747304f58f7?auto=format&fit=crop&w=600&q=80',
+      'Ice Face Roller': 'https://images.unsplash.com/photo-1598440441973-1ef75db448b1?auto=format&fit=crop&w=600&q=80',
+      'Facial Cleansing Brush': 'https://images.unsplash.com/photo-1552046122-03184de85e08?auto=format&fit=crop&w=600&q=80',
+      'Hair Straightener Brush': 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80',
+      'Neck & Shoulder Massager': 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=600&q=80',
+      'Posture Corrector': 'https://images.unsplash.com/photo-1540206276907-c21d9993303d?auto=format&fit=crop&w=600&q=80',
+      'Massage Gun': 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=600&q=80',
+      'Memory Foam Pillow': 'https://images.unsplash.com/photo-1520406853248-1850ad3c14ff?auto=format&fit=crop&w=600&q=80',
+      'Pet Hair Remover Roller': 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=600&q=80',
+      'Self-Cleaning Grooming Brush': 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=600&q=80',
+      'Automatic Pet Feeder': 'https://images.unsplash.com/photo-1563460716037-460a3ad24ba9?auto=format&fit=crop&w=600&q=80',
+      'Baby Nail Trimmer': 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=600&q=80',
+      'Wireless Earbuds': 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=600&q=80',
+      'Fast Wireless Charger': 'https://images.unsplash.com/photo-1615526675159-e248c3021d3f?auto=format&fit=crop&w=600&q=80',
+      'Resistance Bands': 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=600&q=80',
+      'Yoga Mat': 'https://images.unsplash.com/photo-1592432678016-e910b452f9a2?auto=format&fit=crop&w=600&q=80'
+    };
+    
+    // Category-based fallback
+    const categoryFolders = {
+       'Home & Kitchen': 'kitchen',
+       'Health & Wellness': 'wellness',
+       'Beauty & Personal Care': 'beauty',
+       'Pet Supplies': 'pets',
+       'Baby & Kids Essentials': 'baby',
+       'Electronics & Accessories': 'electronics',
+       'Sports & Fitness': 'fitness'
+    };
+
+    const folder = categoryFolders[p.cat] || 'product';
+    const fallbackImage = `https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80`; // Generic premium product
+    const imageName = specificImages[p.name] || `https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80`; // Better stable fallback
+    
+    // IMAGE LOGIC FIX: Do not prefix absolute URLs with local asset path
+    const finalImagePath = imageName.startsWith('http') ? imageName : `/assets/products/${imageName}`;
+
+
+
+    await prisma.product.create({
+      data: {
+        name: p.name,
+        slug: `${slug}-${i}`,
+        description: `Professional-grade ${p.name.toLowerCase()} curated for MRT International. Designed for elite performance and reliability in the modern lifestyle.`,
+        price: 39.99 + (i % 10 * 15),
+        image: finalImagePath,
+        badge: p.badge,
+        affiliateUrl: p.url,
+        isActive: true,
+        sortOrder: i,
+        ratingValue: 4.8 + (Math.random() * 0.2),
+        categoryId: catMap[p.cat],
+        shortBenefit: `Elite quality ${p.name.toLowerCase()}.`,
+        tags: JSON.stringify([p.cat.split(' ')[0].toLowerCase(), 'boutique', 'premium']),
+        keyBenefits: JSON.stringify(['Superior Build', 'Artisanal Curation', 'Global Trade Standard'])
+      }
+    });
+  }
+
+  // 3. Testimonials (Restored)
+  const testimonials = [
+    { name: 'Michael T.', location: 'Texas, USA', quote: 'Superior Craftsmanship', text: 'Superior craftsmanship and world-class logistics. MRT International delivers excellence in every shipment.', region: 'us', rating: 5, sortOrder: 1 },
+    { name: 'Sara M.', location: 'Dubai, UAE', quote: 'World-Class Delivery', text: 'Exceptional delivery speed to the UAE. The product quality exceeded our high standards.', region: 'ae', rating: 5, sortOrder: 6 }
+  ];
+
+  for (const t of testimonials) {
+    await prisma.testimonial.create({ data: t });
+  }
+
+  console.log(`🌟 Seeding Complete. ${finalProducts.length} Verified Products Synced.`);
 }
 
 main()

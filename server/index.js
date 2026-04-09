@@ -19,18 +19,38 @@ import mediaRouter from './routes/media.js';
 import adminRouter from './routes/admin.js';
 import prisma from './db.js';
 
+import { rateLimit } from 'express-rate-limit';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// SECURITY: Professional Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // Limit each IP to 200 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { status: 429, message: 'Too many requests, please try again later.' }
+});
+
 // Ensure upload directory
 const uploadDir = path.join(__dirname, '../public/assets/uploads');
 if (!existsSync(uploadDir)) mkdirSync(uploadDir, { recursive: true });
 
 app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: false }));
-app.use(cors());
+
+// SECURITY: Hardened CORS (Restricted to Production URL if available)
+const corsOptions = {
+  origin: process.env.PRODUCTION_URL || '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+app.use(cors(corsOptions));
+app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 
 // ENHANCED: Prevent API Caching ONLY for specific data routes to save server load
@@ -43,7 +63,6 @@ app.use('/api', (req, res, next) => {
   }
   next();
 });
-
 // Debug Logger
 app.use((req, res, next) => {
   console.log(`[API] ${req.method} ${req.url}`);
@@ -71,7 +90,6 @@ app.get('/api/legacy/products', async (req, res) => {
       include: { category: { select: { slug: true } } },
       orderBy: { sortOrder: 'asc' },
     });
-    
     res.json(products.map(p => {
       // Missing Category Alert System
       if (!p.category) {
@@ -100,30 +118,7 @@ app.get('/api/legacy/products', async (req, res) => {
   }
 });
 
-// Single Product Fetch (For Quick View) - DEFINED DIRECTLY HERE for priority
-app.get('/api/products/:id', async (req, res) => {
-  try {
-    const product = await prisma.product.findUnique({
-      where: { id: req.params.id },
-      include: { category: true }
-    });
-    if (!product) return res.status(404).json({ error: 'Product not found' });
-    
-    let keyBenefits = [];
-    try { keyBenefits = JSON.parse(product.keyBenefits || '[]'); } catch(e) { keyBenefits = product.keyBenefits || []; }
-
-    res.json({
-      ...product,
-      keyBenefits: keyBenefits,
-      images: JSON.parse(product.images || '[]'),
-      tags: JSON.parse(product.tags || '[]'),
-    });
-  } catch (err) {
-    console.error('API Product Fetch Error:', err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
+// (Products route handled by router mounted above)
 // Legacy: Themes as object keyed by slug
 app.get('/api/legacy/themes', async (req, res) => {
   try {

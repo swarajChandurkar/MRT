@@ -27,7 +27,6 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
 function parseJsonFields(product) {
   return {
     ...product,

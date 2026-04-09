@@ -73,6 +73,55 @@ class MRTApp {
     this.cart = new ShoppingCart();
   }
 
+  async fetchAPI(endpoint, options = {}) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    
+    let url = endpoint;
+    const isGet = !options.method || options.method === 'GET';
+    if (isGet && !url.includes('_t=')) {
+      const sep = url.includes('?') ? '&' : '?';
+      url += `${sep}_t=${Date.now()}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        if (response.status >= 500) {
+          console.warn(`[MRT API] Server Error (${response.status}) on ${endpoint}`);
+        }
+        throw new Error(`API Error: ${response.status}`);
+      }
+      return response;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        console.warn(`[MRT API] Request Timeout: ${endpoint}`);
+      }
+      throw err;
+    }
+  }
+
+  lockScroll() {
+    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.paddingRight = `${scrollBarWidth}px`;
+    const header = document.querySelector('header.fixed');
+    if (header) header.style.paddingRight = `${scrollBarWidth}px`;
+    document.body.style.overflow = 'hidden';
+  }
+
+  unlockScroll() {
+    document.body.style.paddingRight = '';
+    const header = document.querySelector('header.fixed');
+    if (header) header.style.paddingRight = '';
+    document.body.style.overflow = '';
+  }
+
   async init() {
     try {
       this.initHeaderScroll();
@@ -122,13 +171,10 @@ class MRTApp {
     if (!container) return;
 
     try {
-      // Surgical cache bust on core JSON data fetching only
       const [productsRes, themesRes] = await Promise.all([
-        fetch(`/api/legacy/products?_t=${Date.now()}`),
-        fetch(`/api/legacy/themes?_t=${Date.now()}`)
+        this.fetchAPI('/api/legacy/products'),
+        this.fetchAPI('/api/legacy/themes')
       ]);
-
-      if (!productsRes.ok || !themesRes.ok) throw new Error('API error');
 
       const products = await productsRes.json();
       const themes = await themesRes.json();
@@ -137,15 +183,42 @@ class MRTApp {
       if (theme) {
         this.applyTheme(theme);
         this.renderBoutiqueProducts(products, this.currentCategory, container);
+        this.setupSortListener(products, container);
       } else {
-        container.innerHTML = `<p class="col-span-full text-center serif italic opacity-50 py-20 animate-pulse text-on-surface">Synchronizing Collection for "${this.currentCategory}"...</p>`;
+        container.innerHTML = `<div class="min-h-[50vh] flex items-center justify-center"><p class="text-center serif italic opacity-50 py-20 animate-pulse text-on-surface">Synchronizing Collection for "${this.currentCategory}"...</p></div>`;
       }
     } catch (err) {
       console.error('Boutique sync failed:', err);
-      container.innerHTML = `<p class="col-span-full text-center serif italic opacity-50 py-20 text-on-surface">Data sync failed. Please check connection.</p>`;
+      container.innerHTML = `
+        <div class="col-span-full min-h-[50vh] flex flex-col items-center justify-center text-center">
+            <span class="material-symbols-outlined text-6xl text-primary opacity-50 mb-4">cloud_off</span>
+            <p class="text-2xl font-headline italic text-on-surface mb-2">Sync Interrupted</p>
+            <p class="text-on-surface-variant opacity-70">We are unable to connect to the boutique catalog right now. Please refresh.</p>
+        </div>
+      `;
     } finally {
       if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
     }
+  }
+
+  setupSortListener(products, container) {
+    const sortEl = document.getElementById('product-sort');
+    if (!sortEl) return;
+    sortEl.onchange = () => {
+      const sorted = this.sortProducts(products, sortEl.value);
+      this.renderBoutiqueProducts(sorted, this.currentCategory, container);
+    };
+  }
+
+  sortProducts(products, criteria) {
+    const sorted = [...products];
+    switch (criteria) {
+      case 'rating': sorted.sort((a, b) => b.ratingValue - a.ratingValue); break;
+      case 'price-low': sorted.sort((a, b) => a.price - b.price); break;
+      case 'price-high': sorted.sort((a, b) => b.price - a.price); break;
+      case 'newest': sorted.sort((a, b) => b.id - a.id); break;
+    }
+    return sorted;
   }
 
   applyTheme(theme) {
@@ -165,6 +238,14 @@ class MRTApp {
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     set('seo-title', theme.seoTitle || `Top 10 Best ${theme.title} Products (2026)`);
     set('seo-intro', theme.seoIntro || `Discover the most useful, trending, and top-rated ${theme.title.toLowerCase()} products carefully selected for quality and value.`);
+    set('breadcrumb-category', theme.title || 'Collection');
+    
+    const glowEl = document.getElementById('hero-glow');
+    if (glowEl) {
+      glowEl.style.backgroundColor = primary;
+      glowEl.style.filter = 'blur(100px)';
+    }
+
     document.title = `${theme.title} | MRT International`;
   }
 
@@ -173,65 +254,72 @@ class MRTApp {
     const name = product.name || 'Product';
     const badge = product.badge || 'Top Pick';
     const shortDesc = product.shortBenefit || 'Premium quality product selected for elite needs.';
-    const benefits = (product.keyBenefits ? (typeof product.keyBenefits === 'string' ? JSON.parse(product.keyBenefits) : product.keyBenefits) : ['High Quality', 'Durable', 'Effective']).slice(0, 3);
-    const ratingStr = product.rating || '4.8/5 Recommended';
+    
+    // Safely handle JSON parsing for benefits
+    let benefitsList = ['High Quality', 'Durable', 'Effective'];
+    try {
+      if (product.keyBenefits) {
+        const parsed = typeof product.keyBenefits === 'string' ? JSON.parse(product.keyBenefits) : product.keyBenefits;
+        if (Array.isArray(parsed) && parsed.length > 0) benefitsList = parsed;
+      }
+    } catch (e) { console.warn('Failed to parse keyBenefits:', e); }
+    const benefits = benefitsList.slice(0, 3); // Limit to 3 for uniform height
+    
     const image = product.image || '';
     const affiliateUrl = product.affiliateUrl || '#';
     
-    const ratingDisplay = `⭐ [${product.ratingValue || 4.8}/5 Recommended]`;
+    // FIX 1: Format Rating nicely to 1 decimal place (e.g., 4.8 instead of 4.819...)
+    const formattedRating = (parseFloat(product.ratingValue) || 4.8).toFixed(1);
+    const ratingDisplay = `⭐ [${formattedRating}/5 Recommended]`;
     
+    // FIX 2: Ensure uniform card sizing using 'h-full flex flex-col'
     const cardClasses = variant === 'homepage'
-      ? 'product-card-premium product-card-compact group flex-shrink-0 w-[300px] md:w-[380px] snap-start cursor-pointer'
-      : 'product-card-premium group snap-start block w-full border border-outline-variant/20 hover:border-transparent transition-all duration-300 cursor-pointer';
+      ? 'product-card-premium group flex flex-col flex-shrink-0 w-[300px] md:w-[380px] snap-start h-full'
+      : 'product-card-premium group flex flex-col snap-start w-full border border-outline-variant/20 hover:border-transparent transition-all duration-300 h-full';
 
     return `
-      <article class="${cardClasses} p-6 glass-panel-premium group" data-premium-card data-id="${product.id}">
+      <article class="${cardClasses}" data-premium-card data-id="${product.id}">
         <div class="premium-glow"></div>
-        <div class="relative mb-8 rounded-[2rem] overflow-hidden bg-white/40 border border-white/60 p-12 flex items-center justify-center min-h-[320px] transition-all duration-700 group-hover:scale-[1.02] group-hover:bg-white/60">
-          <div class="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/40 to-transparent"></div>
-          
-          <div class="absolute top-6 left-6 z-30 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em] shadow-xl backdrop-blur-xl border border-white/40" style="background-color: var(--category-primary, #914d00); color: white;">
+        
+        <div class="relative w-full h-48 md:h-56 bg-surface/50 rounded-t-2xl overflow-hidden mb-4 flex items-center justify-center border-b border-outline-variant/10">
+          <div class="absolute top-4 left-4 z-20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] shadow-md" style="background-color: var(--category-primary, #914d00); color: white;">
             ${badge}
           </div>
-
-          <div class="product-shine"></div>
-
           ${image
-            ? `<img src="${image}" alt="${name}" class="w-full h-full object-contain relative z-10 transition-all duration-700 group-hover:scale-110 floating-image drop-shadow-[0_25px_25px_rgba(0,0,0,0.15)]">`
-            : `<div class="w-full h-full flex items-center justify-center opacity-20 text-on-surface"><span class="material-symbols-outlined text-7xl">image</span></div>`
+            ? `<img src="${image}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy">`
+            : `<div class="w-full h-full flex items-center justify-center opacity-20 text-on-surface"><span class="material-symbols-outlined text-6xl">image</span></div>`
           }
         </div>
         
-        <div class="flex flex-col flex-grow text-left relative z-20">
-          <div class="flex items-center gap-3 mb-3">
-             <span class="text-[10px] uppercase font-black tracking-[0.4em] text-primary/40">${product.category || 'Collection'}</span>
-             <div class="h-[1px] flex-grow bg-primary/10"></div>
-          </div>
-          <h3 class="text-3xl md:text-4xl font-headline italic text-on-surface mb-4 leading-none tracking-tighter group-hover:text-primary transition-colors">${name}</h3>
-          <p class="text-base text-on-surface-variant font-body mb-8 line-clamp-2 opacity-60 leading-relaxed font-medium capitalize italic">${shortDesc}</p>
+        <div class="flex flex-col flex-grow text-left px-5 pb-5">
+          <h3 class="text-xl md:text-2xl font-bold font-headline italic text-on-surface mb-2 line-clamp-2 leading-tight">${name}</h3>
+          <p class="text-sm text-on-surface-variant font-body mb-4 line-clamp-2 opacity-90">${shortDesc}</p>
           
-          <div class="flex flex-col gap-5">
-            <div class="flex items-center justify-between pb-6 border-b border-primary/5">
-               <div class="flex flex-col">
-                 <span class="text-[10px] uppercase font-black tracking-widest text-primary/40 mb-1">Elite Pricing</span>
-                 <span class="text-4xl font-bold text-on-surface tracking-tighter">$${product.price ? product.price.toFixed(2) : '39.99'}</span>
-               </div>
-               <div class="flex items-center gap-2 bg-primary/5 px-4 py-2 rounded-2xl border border-primary/10">
-                  <span class="material-symbols-outlined text-sm text-primary fill-primary">star</span>
-                  <span class="text-xs font-black text-primary">${product.ratingValue || 4.8}</span>
-               </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-              <a href="${affiliateUrl}" target="_blank" class="bg-[#FF9900] text-[#111] rounded-2xl py-5 px-4 text-center text-[10px] font-black uppercase tracking-[0.25em] shadow-2xl shadow-orange-500/20 hover:scale-105 active:scale-95 transition-all duration-500 flex items-center justify-center gap-3">
-                <span class="material-symbols-outlined text-base">shopping_bag</span>
-                Amazon Selection
+          <ul class="mb-5 space-y-2 flex-grow">
+            ${benefits.map(b => `
+              <li class="flex items-start text-[13px] text-on-surface-variant font-body leading-snug">
+                <span class="mr-2 opacity-60 mt-0.5">•</span>
+                <span class="line-clamp-1">${b}</span>
+              </li>
+            `).join('')}
+          </ul>
+          
+          <div class="mb-5 flex flex-col gap-1">
+            <p class="text-[11px] font-bold uppercase tracking-[0.1em]" style="color: var(--category-primary, #914d00);">${ratingDisplay}</p>
+          </div>
+          
+          <div class="mt-auto flex flex-col gap-3 relative z-20">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <a href="${affiliateUrl}" target="_blank" class="rounded-xl py-3 px-2 text-center text-[10px] font-bold uppercase tracking-wider shadow-md transition-all hover:brightness-110 active:scale-95 flex items-center justify-center gap-2" style="background-color: #FF9900; color: #111;">
+                <span class="material-symbols-outlined text-sm">shopping_cart</span>
+                Check Price
               </a>
-              <button data-id="${product.id}" class="glass-panel-premium text-primary rounded-2xl py-5 px-4 text-center text-[10px] font-black uppercase tracking-[0.25em] hover:bg-primary hover:text-white transition-all duration-500 active:scale-95 flex items-center justify-center gap-3" onclick="window.mrtApp.openQuickView('${product.id}')">
-                <span class="material-symbols-outlined text-base">auto_awesome</span>
-                Pro Max View
+              <button data-quick-view-btn data-product-id="${product.id}" class="rounded-xl py-3 px-2 text-center text-[10px] font-bold uppercase tracking-wider border border-on-surface/20 hover:bg-on-surface/5 transition-all active:scale-95 flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-sm">visibility</span>
+                View Detail
               </button>
             </div>
+            <p class="text-[9px] text-center text-on-surface-variant opacity-40 mt-1 italic leading-tight">Price and availability may vary.</p>
           </div>
         </div>
       </article>
@@ -257,10 +345,10 @@ class MRTApp {
       const secProducts = filtered.filter(p => p.badge === sec.badge);
       if (secProducts.length === 0) return '';
       return `
-        <div class="category-section mb-32">
+        <div class="category-section mb-32 reveal-up">
           <div class="flex flex-col mb-16">
              <h2 class="text-6xl md:text-8xl font-headline italic text-on-surface mb-4">${sec.title}</h2>
-             <div class="h-1 w-40 bg-primary/20" style="background-color: var(--category-primary, #914d0055);"></div>
+             <div class="elite-divider"></div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-12">
             ${secProducts.map(p => this.createProductCard(p)).join('')}
@@ -268,10 +356,10 @@ class MRTApp {
         </div>
       `;
     }).join('') + (unassigned.length > 0 ? `
-        <div class="category-section mb-32">
+        <div class="category-section mb-32 reveal-up">
           <div class="flex flex-col mb-16">
              <h2 class="text-6xl md:text-8xl font-headline italic text-on-surface mb-4">Elite Collection</h2>
-             <div class="h-1 w-40 opacity-20" style="background-color: var(--category-primary, #914d00);"></div>
+             <div class="elite-divider"></div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-12">
             ${unassigned.map(p => this.createProductCard(p)).join('')}
@@ -334,9 +422,7 @@ class MRTApp {
       const sectionCards = container.querySelectorAll('.product-card-premium');
       
       if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined' && sectionCards.length > 0) {
-        // Ensure they are visible if GSAP fails or trigger doesn't hit
-        gsap.set(sectionCards, { opacity: 0, y: 30 });
-
+        // Removed gsap.set opacity: 0 to ensure cards are always visible even if ScrollTrigger is delayed
         gsap.to(sectionCards, {
           y: 0,
           opacity: 1,
@@ -383,15 +469,13 @@ class MRTApp {
   async renderFeaturedSegments() {
     try {
       const [productsRes, themesRes] = await Promise.all([
-        fetch(`/api/legacy/products?_t=${Date.now()}`),
-        fetch(`/api/legacy/themes?_t=${Date.now()}`)
+        this.fetchAPI('/api/legacy/products'),
+        this.fetchAPI('/api/legacy/themes')
       ]);
       
-      if (productsRes.ok && themesRes.ok) {
-        const products = await productsRes.json();
-        const themes = await themesRes.json();
-        this.renderHomepagePicks(products, themes);
-      }
+      const products = await productsRes.json();
+      const themes = await themesRes.json();
+      this.renderHomepagePicks(products, themes);
     } catch (err) { 
       console.error('Featured segments sync failed:', err); 
     } finally { 
@@ -401,11 +485,9 @@ class MRTApp {
 
   async renderHomepageTestimonials() {
     try {
-      const res = await fetch('/api/testimonials');
-      if (res.ok) {
-        const data = await res.json();
-        this.renderTestimonials(data);
-      }
+      const res = await this.fetchAPI('/api/testimonials');
+      const data = await res.json();
+      this.renderTestimonials(data);
     } catch (err) { console.error('Testimonial sync failed:', err); }
     finally { if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh(); }
   }
@@ -540,39 +622,41 @@ class MRTApp {
       const card = e.target.closest('[data-premium-card]');
       const buyBtn = e.target.closest('.shimmer-btn'); // Link to Amazon
       
+      const quickBtn = e.target.closest('[data-quick-view-btn]');
+      if (quickBtn) {
+        this.openQuickView(quickBtn.dataset.productId);
+        return;
+      }
+
       // If clicking card but NOT direct buy button
       if (card && !buyBtn) {
         const productId = card.dataset.id;
         this.openQuickView(productId);
-      }
-
-      const reviewBtn = e.target.closest('[data-review-btn]');
-      if (reviewBtn) {
-        this.openReviewModal(reviewBtn.dataset.productId, reviewBtn.dataset.productName);
       }
     });
   }
 
   async openQuickView(productId) {
     try {
-      // PRO MAX: Resilient dual-path fetching for dev stability (127.0.0.1 priority)
-      let response = await fetch(`/api/products/${productId}?_t=${Date.now()}`);
-      
-      if (!response.ok) {
-        console.warn(`[MRT] Relative API fetch failed (${response.status}), attempting direct bypass to 127.0.0.1...`);
-        response = await fetch(`http://127.0.0.1:3001/api/products/${productId}?_t=${Date.now()}`);
+      let response;
+      try {
+        response = await this.fetchAPI(`/api/products/${productId}`);
+      } catch (err) {
+        console.warn(`[MRT] Relative API fetch failed, attempting bypass...`);
+        response = await this.fetchAPI(`http://127.0.0.1:3001/api/products/${productId}`);
       }
 
-      if (!response.ok) throw new Error('Product details unavailable');
       const product = await response.json();
 
       let reviews = [];
       try {
-        let reviewsRes = await fetch(`/api/reviews/${productId}?_t=${Date.now()}`);
-        if (!reviewsRes.ok) {
-           reviewsRes = await fetch(`http://127.0.0.1:3001/api/reviews/${productId}?_t=${Date.now()}`);
+        let reviewsRes;
+        try {
+           reviewsRes = await this.fetchAPI(`/api/reviews/${productId}`);
+        } catch(e) {
+           reviewsRes = await this.fetchAPI(`http://127.0.0.1:3001/api/reviews/${productId}`);
         }
-        if (reviewsRes.ok) reviews = await reviewsRes.json();
+        reviews = await reviewsRes.json();
       } catch(e) { console.warn('Reviews fetch failed, continuing with empty list'); }
 
       const benefits = (product.keyBenefits ? (typeof product.keyBenefits === 'string' ? JSON.parse(product.keyBenefits) : product.keyBenefits) : []).slice(0, 4);
@@ -597,8 +681,8 @@ class MRTApp {
               <div class="flex items-center gap-3 mb-4">
                 <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary text-white">${product.badge || 'Elite'}</span>
                 <div class="flex items-center gap-1 text-primary">
-                  <span class="material-symbols-outlined text-lg fill-primary">star</span>
-                  <span class="font-bold text-sm">${product.ratingValue || 4.9} / 5</span>
+                   <span class="material-symbols-outlined text-lg fill-primary">star</span>
+                   <span class="font-bold text-sm">${product.ratingValue || 4.9} / 5</span>
                 </div>
               </div>
               <h2 class="text-4xl md:text-5xl font-headline italic text-on-surface mb-4 leading-tight">${product.name}</h2>
@@ -656,9 +740,9 @@ class MRTApp {
       `;
 
       document.body.appendChild(overlay);
-      document.body.style.overflow = 'hidden';
+      this.lockScroll();
 
-      const close = () => { overlay.remove(); document.body.style.overflow = 'auto'; };
+      const close = () => { overlay.remove(); this.unlockScroll(); };
       overlay.querySelector('#close-quickview').onclick = close;
       overlay.onclick = (e) => { if (e.target === overlay) close(); };
 
@@ -666,7 +750,6 @@ class MRTApp {
       console.error('Quick View Error:', err);
     }
   }
-
   async openReviewModal(productId, productName) {
     // Create modal overlay
     const overlay = document.createElement('div');
@@ -708,15 +791,20 @@ class MRTApp {
     `;
 
     document.body.appendChild(overlay);
-    document.body.style.overflow = 'hidden';
+    this.lockScroll();
 
-    const close = () => { overlay.remove(); document.body.style.overflow = 'auto'; };
+    const close = () => { overlay.remove(); this.unlockScroll(); };
     overlay.querySelector('#close-modal').onclick = close;
     overlay.onclick = (e) => { if (e.target === overlay) close(); };
 
-    // Fetch Reviews
+    // Fetch Reviews with Proxy Fallback
     try {
-      const res = await fetch(`/api/reviews/${productId}`);
+      let res;
+      try {
+        res = await this.fetchAPI(`/api/reviews/${productId}`);
+      } catch(e) {
+        res = await this.fetchAPI(`http://127.0.0.1:3001/api/reviews/${productId}`);
+      }
       const reviews = await res.json();
       const listEl = overlay.querySelector('#reviews-list');
       
@@ -748,21 +836,16 @@ class MRTApp {
       const data = Object.fromEntries(formData.entries());
       
       try {
-        const res = await fetch('/api/reviews', {
+        await this.fetchAPI('/api/reviews', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
         
-        if (res.ok) {
-          close();
-          // Optional: Show success toast
-          alert('Thank you for your review! It has been recorded.');
-        } else {
-          alert('Failed to submit review. Please try again.');
-        }
+        close();
+        alert('Thank you for your review! It has been recorded.');
       } catch (err) {
-        alert('Network error. Please check your connection.');
+        alert('Failed to submit review or network error. Please try again.');
       }
     };
   }
