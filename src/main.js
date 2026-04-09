@@ -614,14 +614,15 @@ class MRTApp {
     document.addEventListener('click', async (e) => {
       const card = e.target.closest('[data-premium-card]');
       const buyBtn = e.target.closest('.shimmer-btn'); // Link to Amazon
-      
       const quickBtn = e.target.closest('[data-quick-view-btn]');
       if (quickBtn) {
         e.preventDefault();
         e.stopPropagation();
         this.openQuickView(quickBtn.dataset.productId);
         return;
-         // If clicking card but NOT direct buy button
+      }
+
+      // If clicking card but NOT direct buy button
       if (card && !buyBtn) {
         const productId = card.dataset.id;
         const productJson = card.dataset.productJson;
