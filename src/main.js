@@ -286,7 +286,7 @@ class MRTApp {
             ${badge}
           </div>
           ${image
-            ? `<img src="${image}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy">`
+            ? `<img src="${image}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&q=80';this.onerror=null;">`
             : `<div class="w-full h-full flex items-center justify-center opacity-20 text-on-surface"><span class="material-symbols-outlined text-6xl">image</span></div>`
           }
         </div>
@@ -333,40 +333,15 @@ class MRTApp {
       return;
     }
 
-    const sections = [
-      { badge: 'Top Pick', title: '⭐ Top Picks' },
-      { badge: 'Trending Now', title: '🔥 Trending Now' },
-      { badge: "Editor's Choice", title: "💡 Editor's Choice" }
-    ];
-
-    const unassigned = filtered.filter(p => !sections.some(s => s.badge === p.badge));
-
-    container.innerHTML = sections.map(sec => {
-      const secProducts = filtered.filter(p => p.badge === sec.badge);
-      if (secProducts.length === 0) return '';
-      return `
-        <div class="category-section mb-32 reveal-up">
-          <div class="flex flex-col mb-16">
-             <h2 class="text-6xl md:text-8xl font-headline italic text-on-surface mb-4">${sec.title}</h2>
-             <div class="elite-divider"></div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-12">
-            ${secProducts.map(p => this.createProductCard(p)).join('')}
-          </div>
+    // Unified elite grid — no badge-based sub-sections
+    container.innerHTML = `
+      <div class="category-section mb-16 reveal-up">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
+          ${filtered.map(p => this.createProductCard(p)).join('')}
         </div>
-      `;
-    }).join('') + (unassigned.length > 0 ? `
-        <div class="category-section mb-32 reveal-up">
-          <div class="flex flex-col mb-16">
-             <h2 class="text-6xl md:text-8xl font-headline italic text-on-surface mb-4">Elite Collection</h2>
-             <div class="elite-divider"></div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-12">
-            ${unassigned.map(p => this.createProductCard(p)).join('')}
-          </div>
-        </div>
-    ` : '');
-    
+      </div>
+    `;
+
     this.initCardInteractions('category-products-container');
   }
 
@@ -732,7 +707,13 @@ class MRTApp {
                     </div>
                     <p class="text-sm font-body italic text-on-surface-variant opacity-80 leading-relaxed group-hover/rev:opacity-100 transition-opacity">"${r.comment}"</p>
                   </div>
-                `).join('') : `<p class="text-center opacity-30 italic py-10">No insights shared yet.</p>`}
+                `).join('') : `
+                  <div class="py-12 flex flex-col items-center justify-center text-center opacity-50">
+                    <span class="material-symbols-outlined text-4xl mb-4 text-primary/30">rate_review</span>
+                    <p class="text-base font-headline italic">No reviews yet.</p>
+                    <p class="text-sm mt-2 opacity-60">Be the first to share your experience with this product!</p>
+                  </div>
+                `}
               </div>
             </div>
           </div>
