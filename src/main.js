@@ -184,23 +184,20 @@ class MRTApp {
       : 'product-card-premium group snap-start block w-full border border-outline-variant/20 hover:border-transparent transition-all duration-300 cursor-pointer';
 
     return `
-      <article class="${cardClasses} p-6 glass-panel-premium group" data-premium-card data-id="${product.id}">
-        <div class="premium-glow"></div>
-        <div class="relative mb-8 rounded-[2rem] overflow-hidden bg-white/40 border border-white/60 p-12 flex items-center justify-center min-h-[320px] transition-all duration-700 group-hover:scale-[1.02] group-hover:bg-white/60">
-          <div class="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/40 to-transparent"></div>
-          
-          <div class="absolute top-6 left-6 z-30 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.35em] shadow-xl backdrop-blur-xl border border-white/40" style="background-color: var(--category-primary, #914d00); color: white;">
+      <article class="${cardClasses} p-6 group" data-premium-card data-id="${product.id}">
+        <div class="relative mb-8 rounded-[2rem] overflow-hidden bg-surface-variant/5 border border-outline-variant/10 p-12 flex items-center justify-center min-h-[320px] transition-all duration-700 group-hover:scale-[1.02] group-hover:bg-surface-variant/10">
+          <div class="absolute top-6 left-6 z-30 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.35em] shadow-lg border border-white/20" style="background-color: var(--category-primary, #914d00); color: white;">
             ${badge}
           </div>
 
           <div class="product-shine"></div>
 
           ${image
-            ? `<img src="${image}" alt="${name}" class="w-full h-full object-contain relative z-10 transition-all duration-700 group-hover:scale-110 floating-image drop-shadow-[0_25px_25px_rgba(0,0,0,0.15)]">`
+            ? `<img src="${image}" alt="${name}" class="w-full h-full object-contain relative z-10 transition-all duration-700 group-hover:scale-110 floating-image drop-shadow-[0_20px_40px_rgba(0,0,0,0.1)]">`
             : `<div class="w-full h-full flex items-center justify-center opacity-20 text-on-surface"><span class="material-symbols-outlined text-7xl">image</span></div>`
           }
         </div>
-        
+`+ "        " + `
         <div class="flex flex-col flex-grow text-left relative z-20">
           <div class="flex items-center gap-3 mb-3">
              <span class="text-[10px] uppercase font-black tracking-[0.4em] text-primary/40">${product.category || 'Collection'}</span>
