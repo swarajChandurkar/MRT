@@ -250,141 +250,67 @@ class MRTApp {
     document.title = `${theme.title} | MRT International`;
   }
 
-  createProductCard(product, options = {}) {
-    const variant = options.variant || 'boutique';
-    const name = product.name || 'Product';
-    const badge = product.badge || 'Top Pick';
-    const shortDesc = product.shortBenefit || 'Premium quality product selected for elite needs.';
-    
-    // Safely handle JSON parsing for benefits
-    let benefitsList = ['High Quality', 'Durable', 'Effective'];
-    try {
-      if (product.keyBenefits) {
-        const parsed = typeof product.keyBenefits === 'string' ? JSON.parse(product.keyBenefits) : product.keyBenefits;
-        if (Array.isArray(parsed) && parsed.length > 0) benefitsList = parsed;
-      }
-    } catch (e) { console.warn('Failed to parse keyBenefits:', e); }
-    const benefits = benefitsList.slice(0, 3); // Limit to 3 for uniform height
-    
+  createProductCard(product) {
+    const price = typeof product.price === 'number' ? product.price.toFixed(2) : product.price;
+    const category = (product.category || '').replace(/-/g, ' ');
+    const icon = product.icon || 'shopping_bag';
     const image = product.image || '';
-    const affiliateUrl = product.affiliateUrl || '#';
-    
-    // FIX 1: Format Rating nicely to 1 decimal place (e.g., 4.8 instead of 4.819...)
-    const formattedRating = (parseFloat(product.ratingValue) || 4.8).toFixed(1);
-    const ratingDisplay = `⭐ [${formattedRating}/5 Recommended]`;
-    
-    // RELEVANCE FIX: Use category and name for highly contextual fallback images
-    const searchTerms = `${product.category || 'Product'},${product.name || ''}`.replace(/[^a-zA-Z0-9,]/g, '').toLowerCase();
-    const fallbackImage = `https://loremflickr.com/600/600/${searchTerms}?lock=${product.id || 1}`;
-    
-    // For Resilience: Stringify basic product info to allow instant modal loading
+    const name = product.name || 'Product';
+
+    // Stringify for Quick View resilience
     const productData = JSON.stringify({
       id: product.id,
       name: product.name,
-      shortBenefit: product.shortBenefit || product.shortDescription,
       price: product.price,
       image: product.image,
       category: product.category,
       ratingValue: product.ratingValue,
       badge: product.badge,
       affiliateUrl: product.affiliateUrl,
-      keyBenefits: product.keyBenefits
+      keyBenefits: product.keyBenefits,
+      shortBenefit: product.shortBenefit || product.shortDescription
     }).replace(/"/g, '&quot;');
 
-    // FIX 2: Ensure uniform card sizing using 'h-full flex flex-col'
-    const cardClasses = variant === 'homepage'
-      ? 'product-card-premium group flex flex-col flex-shrink-0 w-[300px] md:w-[380px] snap-start h-full'
-      : 'product-card-premium group flex flex-col snap-start w-full border border-outline-variant/20 hover:border-transparent transition-all duration-300 h-full';
-
     return `
-      <article class="${cardClasses}" data-premium-card data-id="${product.id}" data-product-json="${productData}">
-        <div class="premium-glow"></div>
-        
-        <div class="relative w-full h-48 md:h-56 bg-surface/50 rounded-t-2xl overflow-hidden mb-4 flex items-center justify-center border-b border-outline-variant/10">
-          <div class="absolute top-4 left-4 z-20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] shadow-md" style="background-color: var(--category-primary, #914d00); color: white;">
-            ${badge}
-          </div>
+      <div class="product-card reveal-up" data-premium-card data-id="${product.id}" data-product-json="${productData}">
+        <div class="product-image-container group">
           ${image
-            ? `<img src="${image}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" onerror="this.src='${fallbackImage}';this.onerror=null;">`
-            : `<img src="${fallbackImage}" alt="${name}" class="w-full h-full object-cover opacity-80">`
+            ? `<img src="${image}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy">`
+            : `<div class="w-full h-full flex items-center justify-center opacity-20"><span class="material-symbols-outlined text-6xl">image</span></div>`
           }
-        </div>
-        
-        <div class="flex flex-col flex-grow text-left px-5 pb-5">
-          <h3 class="text-xl md:text-2xl font-bold font-headline italic text-on-surface mb-2 line-clamp-2 leading-tight">${name}</h3>
-          <p class="text-sm text-on-surface-variant font-body mb-4 line-clamp-2 opacity-90">${shortDesc}</p>
-          
-          <ul class="mb-5 space-y-2 flex-grow">
-            ${benefits.map(b => `
-              <li class="flex items-start text-[13px] text-on-surface-variant font-body leading-snug">
-                <span class="mr-2 opacity-60 mt-0.5">•</span>
-                <span class="line-clamp-1">${b}</span>
-              </li>
-            `).join('')}
-          </ul>
-          
-          <div class="mb-5 flex flex-col gap-1">
-            <p class="text-[11px] font-bold uppercase tracking-[0.1em]" style="color: var(--category-primary, #914d00);">${ratingDisplay}</p>
-          </div>
-          
-          <div class="mt-auto flex flex-col gap-3 relative z-20">
-            <div class="grid grid-cols-2 gap-2">
-              <a href="${affiliateUrl}" target="_blank" class="amazon-btn rounded-xl py-3 px-1 text-center text-[9px] font-black uppercase tracking-widest shadow-md transition-all active:scale-95 flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-[12px]">shopping_cart</span>
-                Amazon
-              </a>
-              <a href="${affiliateUrl}" target="_blank" class="temu-btn rounded-xl py-3 px-1 text-center text-[9px] font-black uppercase tracking-widest border border-on-surface/10 hover:border-primary/30 transition-all text-on-surface active:scale-95 flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-[12px]">local_mall</span>
-                Temu Deal
-              </a>
-            </div>
-            <button data-quick-view-btn data-product-id="${product.id}" class="w-full rounded-xl py-2 px-2 text-center text-[9px] font-bold uppercase tracking-widest opacity-60 hover:opacity-100 transition-all flex items-center justify-center gap-1">
-              <span class="material-symbols-outlined text-sm">visibility</span>
-              View Full Detail
+          <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-500"></div>
+          <div class="absolute bottom-4 right-4 flex gap-2 translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+            <button class="bg-white/90 backdrop-blur-md text-on-surface p-3 rounded-xl shadow-xl hover:scale-110 transition-transform" data-quick-view-btn data-product-id="${product.id}" aria-label="Quick View">
+              <span class="material-symbols-outlined">visibility</span>
             </button>
-            <p class="text-[9px] text-center text-on-surface-variant opacity-40 mt-1 italic leading-tight">Price and availability may vary.</p>
+            <button class="bg-primary text-white p-3 rounded-xl shadow-xl hover:scale-110 transition-transform" aria-label="Add to cart">
+              <span class="material-symbols-outlined">add_shopping_cart</span>
+            </button>
           </div>
         </div>
-      </article>
+        <div class="mt-4">
+          <div class="flex justify-between items-start mb-2 gap-2">
+            <h3 class="text-lg font-headline italic tracking-tight leading-snug">${name}</h3>
+            <span class="font-bold text-sm whitespace-nowrap" style="color:var(--category-primary, #914d00)">$${price}</span>
+          </div>
+          <div class="flex items-center gap-1 text-[10px] text-on-surface-variant font-bold uppercase tracking-[0.2em] opacity-50">
+            <span class="material-symbols-outlined text-[14px]">${icon}</span>
+            ${category}
+          </div>
+        </div>
+      </div>
     `;
   }
 
   renderBoutiqueProducts(products, category, container) {
     const filtered = products.filter(p => p.category === category);
+
     if (filtered.length === 0) {
-      container.innerHTML = `<p class="col-span-full text-center serif italic opacity-50 py-20 text-on-surface">No products in "${category}" yet.</p>`;
+      container.innerHTML = `<p class="col-span-full text-center serif italic opacity-50 py-20">No products in this collection yet — check back soon.</p>`;
       return;
     }
 
-    const sections = [
-      { title: 'Top Picks', icon: 'star', badge: 'Top Pick' },
-      { title: 'Trending Now', icon: 'local_fire_department', badge: 'Trending Now' },
-      { title: 'Editor\'s Choice', icon: 'lightbulb', badge: 'Editor\'s Choice' }
-    ];
-
-    container.innerHTML = sections.map(sec => {
-      const secProducts = filtered.filter(p => p.badge === sec.badge);
-      if (secProducts.length === 0) return '';
-
-      return `
-        <div class="mb-24 reveal-up">
-          <div class="flex items-center gap-4 mb-12 border-b border-outline-variant/10 pb-6">
-            <div class="w-12 h-12 rounded-2xl theme-bg-primary/10 flex items-center justify-center text-primary">
-              <span class="material-symbols-outlined">${sec.icon}</span>
-            </div>
-            <div>
-              <h2 class="text-3xl font-headline italic tracking-tight">${sec.title}</h2>
-              <p class="text-xs uppercase tracking-[0.2em] opacity-40 font-black">Elite Selection</p>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
-            ${secProducts.map(p => this.createProductCard(p)).join('')}
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    this.initCardInteractions('category-products-container');
+    container.innerHTML = filtered.map(p => this.createProductCard(p)).join('');
   }
 
   initCardInteractions(targetId = null) {
@@ -512,10 +438,10 @@ class MRTApp {
   renderHomepagePicks(products, themes = {}) {
      const sections = [
         { id: 'home-kitchen-carousel', category: 'home-kitchen' },
-        { id: 'health-wellness-carousel', category: 'health-wellness' },
-        { id: 'beauty-personal-care-carousel', category: 'beauty-personal-care' },
+        { id: 'health-care-carousel', category: 'health-wellness' }, // Map to new categories mapping
+        { id: 'beauty-skincare-carousel', category: 'beauty-personal-care' },
         { id: 'pet-carousel', category: 'pet-supplies' },
-        { id: 'baby-kids-essentials-carousel', category: 'baby-kids-essentials' },
+        { id: 'baby-carousel', category: 'baby-kids-essentials' },
         { id: 'electronics-carousel', category: 'electronics-accessories' },
         { id: 'sports-carousel', category: 'sports-fitness' }
      ];
@@ -524,27 +450,14 @@ class MRTApp {
        const el = document.getElementById(sec.id);
        if (!el) return;
        
-       const list = products
-         .filter(p => p.category === sec.category)
-         .slice(0, 8);
+       const list = products.filter(p => p.category === sec.category);
 
        if (list.length > 0) {
-         const theme = themes[sec.category] || { primary: '#914d00', secondary: '#ff8c00' };
-         const primary = theme.primary || '#914d00';
-         el.style.setProperty('--category-primary', primary);
-         el.style.setProperty('--category-secondary', theme.secondary || '#ff8c00');
-         
-         const r = parseInt(primary.slice(1, 3), 16);
-         const g = parseInt(primary.slice(3, 5), 16);
-         const b = parseInt(primary.slice(5, 7), 16);
-         el.style.setProperty('--category-primary-glow', `rgba(${r}, ${g}, ${b}, 0.15)`);
-
-         el.innerHTML = list.map(p => this.createProductCard(p, { variant: 'homepage' })).join('');
+         el.innerHTML = list.map(p => this.createProductCard(p)).join('');
        } else {
          el.innerHTML = `<div class="w-full py-20 text-center opacity-30 italic">No products currently listed in ${sec.category}</div>`;
        }
      });
-     this.initCardInteractions();
    }
 
   renderTestimonials(testimonials) {
