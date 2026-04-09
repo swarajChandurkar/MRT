@@ -13,28 +13,40 @@ router.use((req, res, next) => {
 
 // Public: Get product by ID
 router.get('/:id', async (req, res) => {
-  console.log(`[DEBUG] Entered GET /:id with param: ${req.params.id}`);
   try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid product ID' });
+
     const product = await prisma.product.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: { category: true },
     });
-    console.log(`[DEBUG] Data found: ${product ? product.name : 'NULL'}`);
+    
     if (!product) return res.status(404).json({ error: 'Product not found' });
     res.json(parseJsonFields(product));
   } catch (err) {
-    console.error(`[DEBUG] Error:`, err);
-    res.status(500).json({ error: 'Server error' });
+    console.error(`[API ERROR] GET /products/:id:`, err);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 function parseJsonFields(product) {
+  const tryParse = (val) => {
+    if (!val) return [];
+    try {
+      return typeof val === 'string' ? JSON.parse(val) : val;
+    } catch (e) {
+      return [];
+    }
+  };
+
   return {
     ...product,
-    images: JSON.parse(product.images || '[]'),
-    tags: JSON.parse(product.tags || '[]'),
-    keyBenefits: JSON.parse(product.keyBenefits || '[]'),
-    pros: JSON.parse(product.pros || '[]'),
-    cons: JSON.parse(product.cons || '[]'),
+    images: tryParse(product.images),
+    tags: tryParse(product.tags),
+    keyBenefits: tryParse(product.keyBenefits),
+    pros: tryParse(product.pros),
+    cons: tryParse(product.cons),
   };
 }
 

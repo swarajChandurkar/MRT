@@ -48,47 +48,82 @@
 
     <main class="pt-20">
         <!-- Hero Section -->
-        <section class="relative py-32 bg-surface-container-low overflow-hidden">
-            <div class="container mx-auto px-8 relative z-10 text-center">
-                <div class="max-w-4xl mx-auto">
-                    <span class="text-primary font-bold tracking-[0.4em] uppercase text-sm mb-6 block">Our Brand Story</span>
-                    <h1 class="text-7xl font-headline text-on-background leading-tight mb-8">Building a Bridge to <br><i class="font-normal italic text-primary">Global Excellence</i></h1>
-                    <p class="text-2xl text-on-surface-variant font-body leading-relaxed max-w-2xl mx-auto italic opacity-80">At MRT International Holding LLC, we are driven by a vision to create a seamless bridge between global products and modern consumers.</p>
+        <section class="relative py-40 bg-surface overflow-hidden">
+            <!-- Professional Background Blur -->
+            <div class="absolute top-0 right-0 w-[50vw] h-[50vw] bg-primary/10 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/4"></div>
+            <div class="absolute bottom-0 left-0 w-[40vw] h-[40vw] bg-primary/5 blur-[100px] rounded-full translate-y-1/4 -translate-x-1/4"></div>
+
+            <div class="container mx-auto px-8 relative z-10">
+                <div class="flex flex-col items-center text-center max-w-5xl mx-auto">
+                    <div class="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-primary/5 border border-primary/10 mb-8 reveal-up">
+                        <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                        <span class="text-primary font-bold tracking-[0.3em] uppercase text-[10px]">Since 2014 — The Legacy</span>
+                    </div>
+                    <h1 class="text-7xl md:text-9xl font-headline text-on-background leading-[0.85] tracking-tight mb-12 reveal-up">
+                        Building a Bridge to <br>
+                        <span class="text-primary not-italic font-bold">Global Excellence</span>
+                    </h1>
+                    <p class="text-2xl text-on-surface-variant font-body leading-relaxed max-w-3xl mx-auto italic opacity-70 reveal-up">
+                        At MRT International Holding LLC, we are driven by a vision to create a <i>seamless bridge</i> between global products and modern consumers.
+                    </p>
                 </div>
             </div>
         </section>
 
         <!-- About In-Depth -->
-        <section class="py-24 bg-surface">
-            <div class="container mx-auto px-8 max-w-screen-xl">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-                    <div>
-                        <h2 class="text-5xl font-headline mb-8 italic">Trust, Innovation, and <i>Global Reach</i></h2>
-                        <p class="text-lg text-on-surface-variant font-body mb-8 leading-relaxed">Established with a forward-thinking approach, we specialize in sourcing, marketing, and delivering high-quality products across multiple categories through innovative digital platforms.</p>
-                        <p class="text-lg text-on-surface-variant font-body mb-8 leading-relaxed">Built on a strong foundation of integrity, professionalism, and strategic insight, our company focuses on scalable e-commerce solutions that prioritize customer satisfaction, operational excellence, and long-term growth.</p>
-                        <div class="p-8 bg-surface-container-high rounded-3xl border border-outline-variant/10">
-                            <p class="text-on-surface italic font-body text-lg">"We are not just selling products — we are building a brand that stands for trust and quality worldwide."</p>
+        <section class="py-32 bg-surface relative">
+            <div class="container mx-auto px-8 max-w-screen-xl relative z-10">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
+                    <div class="reveal-up">
+                        <h2 class="text-6xl font-headline mb-10 italic leading-tight">Trust, Innovation, and <i>Global Reach</i></h2>
+                        <div class="space-y-8">
+                            <p class="text-xl text-on-surface-variant font-body leading-relaxed opacity-80">Established with a forward-thinking approach, we specialize in sourcing, marketing, and delivering high-quality products across multiple categories through innovative digital platforms.</p>
+                            <p class="text-xl text-on-surface-variant font-body leading-relaxed opacity-80">Built on a strong foundation of integrity, professionalism, and strategic insight, our company focuses on scalable e-commerce solutions that prioritize customer satisfaction, operational excellence, and long-term growth.</p>
+                        </div>
+                        
+                        <div class="mt-12 p-10 bg-surface-container-high rounded-[3rem] border border-outline-variant/10 relative overflow-hidden group">
+                            <div class="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span class="material-symbols-outlined text-8xl text-primary">format_quote</span>
+                            </div>
+                            <p class="text-on-surface italic font-body text-2xl relative z-10">"We are not just selling products — we are building a brand that stands for trust and quality worldwide."</p>
                         </div>
                     </div>
-                    <div class="relative rounded-[3rem] overflow-hidden shadow-2xl">
-                        <img src="/assets/mrt-hero.png" alt="Corporate Vision" class="w-full h-full object-cover">
+                    <div class="relative group reveal-up">
+                        <div class="absolute -inset-4 bg-primary/10 blur-3xl rounded-[4rem] opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
+                        <div class="relative rounded-[4rem] overflow-hidden shadow-2xl border border-white/40">
+                            <img src="/assets/mrt-hero.png" alt="Corporate Vision" class="w-full h-auto object-cover transform scale-105 group-hover:scale-100 transition-transform duration-[2s]">
+                        </div>
+                        <!-- Floating Badges -->
+                        <div class="absolute -bottom-8 -left-8 bg-white/80 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white flex items-center gap-4 animate-float">
+                            <div class="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white">
+                                <span class="material-symbols-outlined">public</span>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-black uppercase tracking-widest opacity-40">Presence</p>
+                                <p class="text-lg font-bold">12+ Countries</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- Mission & Vision -->
-        <section class="py-24 bg-surface-container-low">
-            <div class="container mx-auto px-8 max-w-screen-xl grid grid-cols-1 md:grid-cols-2 gap-12">
-                <div class="bg-white p-12 rounded-3xl shadow-sm border border-outline-variant/10">
-                    <span class="material-symbols-outlined text-primary text-5xl mb-6">rocket_launch</span>
-                    <h3 class="text-3xl font-headline mb-4 italic">Mission Statement</h3>
-                    <p class="text-lg text-on-surface-variant font-body leading-relaxed">To provide customers with high-quality, affordable products through efficient digital platforms while maintaining excellence in service, reliability, and customer satisfaction.</p>
+        <section class="py-32 bg-surface-container-low relative">
+            <div class="container mx-auto px-8 max-w-screen-xl grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10">
+                <div class="bg-white/60 backdrop-blur-2xl p-16 rounded-[4rem] shadow-xl border border-white reveal-up group hover:-translate-y-4 transition-all duration-700">
+                    <div class="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center text-primary mb-10 group-hover:scale-110 transition-transform">
+                        <span class="material-symbols-outlined text-5xl">rocket_launch</span>
+                    </div>
+                    <h3 class="text-4xl font-headline mb-6 italic">Mission Statement</h3>
+                    <p class="text-xl text-on-surface-variant font-body leading-relaxed opacity-70">To provide customers with high-quality, affordable products through efficient digital platforms while maintaining excellence in service, reliability, and customer satisfaction.</p>
                 </div>
-                <div class="bg-white p-12 rounded-3xl shadow-sm border border-outline-variant/10">
-                    <span class="material-symbols-outlined text-primary text-5xl mb-6">visibility</span>
-                    <h3 class="text-3xl font-headline mb-4 italic">Vision Statement</h3>
-                    <p class="text-lg text-on-surface-variant font-body leading-relaxed">To become a globally recognized e-commerce and trading company, known for innovation, trust, and delivering value-driven solutions in the digital marketplace.</p>
+                <div class="bg-white/60 backdrop-blur-2xl p-16 rounded-[4rem] shadow-xl border border-white reveal-up group hover:-translate-y-4 transition-all duration-700" style="transition-delay: 200ms">
+                    <div class="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center text-primary mb-10 group-hover:scale-110 transition-transform">
+                        <span class="material-symbols-outlined text-5xl">visibility</span>
+                    </div>
+                    <h3 class="text-4xl font-headline mb-6 italic">Vision Statement</h3>
+                    <p class="text-xl text-on-surface-variant font-body leading-relaxed opacity-70">To become a globally recognized e-commerce and trading company, known for innovation, trust, and delivering value-driven solutions in the digital marketplace.</p>
                 </div>
             </div>
         </section>

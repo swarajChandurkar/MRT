@@ -236,9 +236,10 @@ class MRTApp {
     root.style.setProperty('--category-primary-glow', glowColor);
 
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    set('seo-title', theme.seoTitle || `Top 10 Best ${theme.title} Products (2026)`);
-    set('seo-intro', theme.seoIntro || `Discover the most useful, trending, and top-rated ${theme.title.toLowerCase()} products carefully selected for quality and value.`);
-    set('breadcrumb-category', theme.title || 'Collection');
+    const categoryName = theme.title || 'Products';
+    set('seo-title', `Top 10 Best ${categoryName} (2026)`);
+    set('seo-intro', `Discover the most useful, trending, and top-rated ${categoryName.toLowerCase()} products carefully selected for quality and value.`);
+    set('breadcrumb-category', categoryName);
     
     const glowEl = document.getElementById('hero-glow');
     if (glowEl) {
@@ -327,16 +328,20 @@ class MRTApp {
           </div>
           
           <div class="mt-auto flex flex-col gap-3 relative z-20">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <a href="${affiliateUrl}" target="_blank" class="amazon-btn rounded-xl py-3 px-2 text-center text-[10px] font-bold uppercase tracking-wider shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
-                <span class="material-symbols-outlined text-sm">shopping_cart</span>
-                Check Price on Amazon
+            <div class="grid grid-cols-2 gap-2">
+              <a href="${affiliateUrl}" target="_blank" class="amazon-btn rounded-xl py-3 px-1 text-center text-[9px] font-black uppercase tracking-widest shadow-md transition-all active:scale-95 flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[12px]">shopping_cart</span>
+                Amazon
               </a>
-              <button data-quick-view-btn data-product-id="${product.id}" class="rounded-xl py-3 px-2 text-center text-[10px] font-bold uppercase tracking-wider border border-on-surface/20 hover:bg-on-surface/5 transition-all text-on-surface active:scale-95 flex items-center justify-center gap-2">
-                <span class="material-symbols-outlined text-sm">visibility</span>
-                View Detail
-              </button>
+              <a href="${affiliateUrl}" target="_blank" class="temu-btn rounded-xl py-3 px-1 text-center text-[9px] font-black uppercase tracking-widest border border-on-surface/10 hover:border-primary/30 transition-all text-on-surface active:scale-95 flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[12px]">local_mall</span>
+                Temu Deal
+              </a>
             </div>
+            <button data-quick-view-btn data-product-id="${product.id}" class="w-full rounded-xl py-2 px-2 text-center text-[9px] font-bold uppercase tracking-widest opacity-60 hover:opacity-100 transition-all flex items-center justify-center gap-1">
+              <span class="material-symbols-outlined text-sm">visibility</span>
+              View Full Detail
+            </button>
             <p class="text-[9px] text-center text-on-surface-variant opacity-40 mt-1 italic leading-tight">Price and availability may vary.</p>
           </div>
         </div>
@@ -351,14 +356,33 @@ class MRTApp {
       return;
     }
 
-    // Unified elite grid — no badge-based sub-sections
-    container.innerHTML = `
-      <div class="category-section mb-16 reveal-up">
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
-          ${filtered.map(p => this.createProductCard(p)).join('')}
+    const sections = [
+      { title: 'Top Picks', icon: 'star', badge: 'Top Pick' },
+      { title: 'Trending Now', icon: 'local_fire_department', badge: 'Trending Now' },
+      { title: 'Editor\'s Choice', icon: 'lightbulb', badge: 'Editor\'s Choice' }
+    ];
+
+    container.innerHTML = sections.map(sec => {
+      const secProducts = filtered.filter(p => p.badge === sec.badge);
+      if (secProducts.length === 0) return '';
+
+      return `
+        <div class="mb-24 reveal-up">
+          <div class="flex items-center gap-4 mb-12 border-b border-outline-variant/10 pb-6">
+            <div class="w-12 h-12 rounded-2xl theme-bg-primary/10 flex items-center justify-center text-primary">
+              <span class="material-symbols-outlined">${sec.icon}</span>
+            </div>
+            <div>
+              <h2 class="text-3xl font-headline italic tracking-tight">${sec.title}</h2>
+              <p class="text-xs uppercase tracking-[0.2em] opacity-40 font-black">Elite Selection</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
+            ${secProducts.map(p => this.createProductCard(p)).join('')}
+          </div>
         </div>
-      </div>
-    `;
+      `;
+    }).join('');
 
     this.initCardInteractions('category-products-container');
   }
